@@ -1,12 +1,9 @@
 import type { Metadata } from "next";
-import { Geist_Mono, Public_Sans } from "next/font/google";
+import { Geist_Mono, Public_Sans, DM_Sans } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 
-const publicSans = Public_Sans({
-  subsets: ["latin"],
-  variable: "--font-sans",
-});
+const dmSans = DM_Sans({subsets:['latin'],variable:'--font-sans'});
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
@@ -33,7 +30,7 @@ export default function RootLayout({
       className={cn(
         "h-full",
         "antialiased",
-        publicSans.variable,
+        dmSans.variable,
         geistMono.variable,
         "font-sans",
       )}

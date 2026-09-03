@@ -41,23 +41,3 @@ export function ChatEmptyState({ onSelectPrompt }: ChatEmptyStateProps) {
     </div>
   );
 }
-
-
-/**
- * CHAT EMPTY STATE
- *
- * Display a useful state when:
- *
- * - no chat is selected, or
- * - the selected chat has no messages.
- *
- * Suggested content:
- * - Short explanation of the knowledge assistant.
- * - Prompt examples.
- * - Information that answers are based on uploaded documents.
- *
- * Do not hard-code backend logic here.
- *
- * Optional:
- * Clicking a suggested question can populate the chat input.
- */

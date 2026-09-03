@@ -9,11 +9,18 @@ import { Textarea } from "@/components/ui/textarea";
 interface ChatInputProps {
   onSendMessage: (message: string) => void;
   isLoading: boolean;
+  disabled?: boolean;
+  error?: string | null;
 }
 
-export function ChatInput({ onSendMessage, isLoading }: ChatInputProps) {
+export function ChatInput({
+  onSendMessage,
+  isLoading,
+  disabled,
+  error,
+}: ChatInputProps) {
   const [value, setValue] = useState("");
-  const canSend = value.trim().length > 0 && !isLoading;
+  const canSend = value.trim().length > 0 && !isLoading && !disabled;
 
   const sendMessage = () => {
     if (!canSend) {
@@ -30,6 +37,7 @@ export function ChatInput({ onSendMessage, isLoading }: ChatInputProps) {
         aria-label="Chat message"
         value={value}
         onChange={(event) => setValue(event.target.value)}
+        disabled={isLoading || disabled}
         onKeyDown={(event) => {
           if (event.key === "Enter" && !event.shiftKey) {
             event.preventDefault();
@@ -39,43 +47,18 @@ export function ChatInput({ onSendMessage, isLoading }: ChatInputProps) {
         placeholder="Ask anything about your documents…"
         className="min-h-[110px] resize-none rounded-3xl"
       />
+      {error ? <p className="text-sm text-destructive">{error}</p> : null}
       <div className="flex items-center justify-between gap-3">
         <p className="text-xs text-muted-foreground">
-          Press Enter to send · Shift + Enter for a new line
+          {isLoading
+            ? "Waiting for the AI response…"
+            : "Press Enter to send · Shift + Enter for a new line"}
         </p>
         <Button onClick={sendMessage} disabled={!canSend}>
           <Send className="size-4" />
-          Send
+          {isLoading ? "Sending" : "Send"}
         </Button>
       </div>
     </div>
   );
 }
-
-/**
- * CHAT INPUT
- *
- * Implement the message composer.
- *
- * Props should support:
- * - onSend(message)
- * - disabled
- * - isSending
- *
- * Responsibilities:
- *
- * - Maintain controlled input state.
- * - Trim input before sending.
- * - Prevent empty messages.
- * - Submit on Enter when appropriate.
- * - Support Shift + Enter for a new line.
- * - Disable submission while AI response generation is active.
- *
- * UX:
- * - Clear the input after successful submission.
- * - Keep the input accessible.
- * - Show a useful loading/send state.
- *
- * This component should not directly call backend routes.
- * The parent ChatContainer controls network requests.
- */

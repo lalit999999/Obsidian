@@ -3,13 +3,14 @@ import { Bot, UserRound } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import type { ChatMessageSource } from "@/types/chat";
 import type { MessageRole } from "@/types";
 
 interface ChatMessageProps {
   role: MessageRole;
   content: string;
   createdAt: string;
-  sources?: string[];
+  sources?: ChatMessageSource[] | null;
 }
 
 export function ChatMessage({
@@ -57,11 +58,11 @@ export function ChatMessage({
               <div className="mt-3 flex flex-wrap gap-2">
                 {sources.map((source) => (
                   <Badge
-                    key={source}
+                    key={`${source.documentId}:${source.chunkIndex}`}
                     variant="secondary"
                     className="rounded-full text-xs"
                   >
-                    {source}
+                    {source.fileName} · #{source.chunkIndex + 1}
                   </Badge>
                 ))}
               </div>
@@ -75,25 +76,6 @@ export function ChatMessage({
             </Avatar>
           ) : null}
         </div>
-      </div>
-    </div>
-  );
-}
-/**
- * CHAT MESSAGES
- *
- * Render the list of conversation messages.
- *
- * Responsibilities:
- * - Render messages in chronological order.
- * - Use ChatMessage for each message.
- * - Automatically scroll to the latest message when appropriate.
- * - Handle an empty conversation.
- *
- * The component should not perform API calls.
- *
- * Keep scrolling behavior smooth and avoid excessive
- * scroll operations.
  */
 
 

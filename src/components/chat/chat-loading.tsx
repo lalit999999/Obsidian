@@ -15,21 +15,3 @@ export function ChatLoading() {
     </div>
   );
 }
-
-
-/**
- * CHAT LOADING
- *
- * Render the assistant response loading indicator.
- *
- * This component is displayed after the user message
- * while the backend is:
- *
- * - retrieving RAG context
- * - generating the AI response
- *
- * Keep the loading UI lightweight and consistent with
- * the application's shadcn-based design.
- *
- * Do not use fake generated text as the final answer.
- */

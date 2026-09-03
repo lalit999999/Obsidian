@@ -65,10 +65,7 @@ export function ChatContainer({
         body: JSON.stringify({ content: trimmed }),
       });
 
-      let payload:
-        | SendMessageResponse
-        | { success: false; error?: { message?: string } }
-        | null = null;
+      let payload: SendMessageResponse | { success: false; error?: { message?: string } };
 
       try {
         payload = await response.json();
@@ -80,7 +77,7 @@ export function ChatContainer({
 
       if (!response.ok || !payload.success) {
         const serverMessage =
-          payload && "error" in payload ? payload.error?.message : undefined;
+          "error" in payload ? payload.error?.message : undefined;
         throw new Error(serverMessage ?? "Failed to send message.");
       }
 

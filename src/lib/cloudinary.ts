@@ -37,8 +37,6 @@ export async function uploadDocumentToCloudinary({
   const folder = "obsidian/documents";
   const resourceType = getResourceType(mimeType);
   const publicId = `${folder}/${fileName.replace(/\.[^.]+$/, "")}-${crypto.randomUUID()}`;
-  const base64Content = Buffer.from(content, "utf8").toString("base64");
-  const dataUri = `data:${mimeType};base64,${base64Content}`;
 
   const signedParams: Record<string, string> = {
     public_id: publicId,
@@ -55,7 +53,11 @@ export async function uploadDocumentToCloudinary({
     .digest("hex");
 
   const body = new FormData();
-  body.set("file", new Blob([dataUri], { type: "text/plain" }));
+  body.set(
+    "file",
+    new Blob([Buffer.from(content, "utf8")], { type: mimeType }),
+    fileName,
+  );
   body.set("public_id", publicId);
   body.set("timestamp", timestamp);
   body.set("api_key", apiKey);

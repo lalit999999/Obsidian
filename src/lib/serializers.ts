@@ -1,7 +1,9 @@
 import type { ChatMessageSource } from "@/types/chat";
 
 export function toIsoString(value: Date | string): string {
-  return value instanceof Date ? value.toISOString() : new Date(value).toISOString();
+  return value instanceof Date
+    ? value.toISOString()
+    : new Date(value).toISOString();
 }
 
 export function serializeProject(project: {
@@ -73,7 +75,9 @@ export function serializeDocument(document: {
     error: document.error,
     chunkCount: document.chunkCount,
     createdAt: toIsoString(document.createdAt),
-    processedAt: document.processedAt ? toIsoString(document.processedAt) : null,
+    processedAt: document.processedAt
+      ? toIsoString(document.processedAt)
+      : null,
   };
 }
 

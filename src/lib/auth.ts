@@ -4,8 +4,8 @@ import { AuthenticationError } from "@/lib/errors";
 export interface CurrentUser {
   id: string;
   email: string;
-  name?: string | null;
-  image?: string | null;
+  name: string | null;
+  image: string | null;
 }
 
 export async function requireCurrentUser(): Promise<CurrentUser> {
@@ -18,7 +18,7 @@ export async function requireCurrentUser(): Promise<CurrentUser> {
   return {
     id: session.user.id,
     email: session.user.email,
-    name: session.user.name,
-    image: session.user.image,
+    name: session.user.name ?? null,
+    image: session.user.image ?? null,
   };
 }

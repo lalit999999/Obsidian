@@ -85,7 +85,7 @@ export function serializeDocument(document: {
 export function serializeMessage(message: {
   id: string;
   chatId: string;
-  role: string;
+  role: MessageRole;
   content: string;
   sources: unknown;
   createdAt: Date;

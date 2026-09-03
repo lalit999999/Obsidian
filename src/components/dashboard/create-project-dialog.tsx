@@ -94,19 +94,28 @@ export function CreateProjectDialog({
     </Dialog>
   );
 }
-// Create a dialog for creating a new project.
-//
-// Fields:
-// - Project name (required).
-// - Project description (optional).
-//
-// Requirements:
-// - Use shadcn Dialog.
-// - Use Input, Label, Textarea, and Button.
-// - Validate that the project name is not empty.
-// - On submit, call a frontend callback with the new project data.
-// - Reset the form after successful creation.
-//
-// Important:
-// - Do not call a backend.
-// - The parent component should be able to update local mock state.
+
+/**
+ * CREATE PROJECT DIALOG
+ *
+ * Make the existing create-project UI functional.
+ *
+ * Fields:
+ * - name (required)
+ * - description (optional)
+ *
+ * Responsibilities:
+ *
+ * - Validate basic input on the client.
+ * - Call the project creation action or API.
+ * - Show pending/loading state.
+ * - Show errors.
+ * - Close the dialog after successful creation.
+ * - Refresh project data.
+ * - Optionally navigate directly to the new project.
+ *
+ * Prevent duplicate submissions.
+ *
+ * The backend remains responsible for authentication,
+ * authorization, and final validation.
+ */

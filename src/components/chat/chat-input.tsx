@@ -9,11 +9,18 @@ import { Textarea } from "@/components/ui/textarea";
 interface ChatInputProps {
   onSendMessage: (message: string) => void;
   isLoading: boolean;
+  disabled?: boolean;
+  error?: string | null;
 }
 
-export function ChatInput({ onSendMessage, isLoading }: ChatInputProps) {
+export function ChatInput({
+  onSendMessage,
+  isLoading,
+  disabled,
+  error,
+}: ChatInputProps) {
   const [value, setValue] = useState("");
-  const canSend = value.trim().length > 0 && !isLoading;
+  const canSend = value.trim().length > 0 && !isLoading && !disabled;
 
   const sendMessage = () => {
     if (!canSend) {
@@ -30,6 +37,7 @@ export function ChatInput({ onSendMessage, isLoading }: ChatInputProps) {
         aria-label="Chat message"
         value={value}
         onChange={(event) => setValue(event.target.value)}
+        disabled={isLoading || disabled}
         onKeyDown={(event) => {
           if (event.key === "Enter" && !event.shiftKey) {
             event.preventDefault();
@@ -37,37 +45,21 @@ export function ChatInput({ onSendMessage, isLoading }: ChatInputProps) {
           }
         }}
         placeholder="Ask anything about your documents…"
-        className="min-h-[110px] resize-none rounded-3xl"
+        className="resize-none rounded-3xl"
+        style={{ minHeight: 110 }}
       />
+      {error ? <p className="text-sm text-destructive">{error}</p> : null}
       <div className="flex items-center justify-between gap-3">
         <p className="text-xs text-muted-foreground">
-          Press Enter to send · Shift + Enter for a new line
+          {isLoading
+            ? "Waiting for the AI response…"
+            : "Press Enter to send · Shift + Enter for a new line"}
         </p>
         <Button onClick={sendMessage} disabled={!canSend}>
           <Send className="size-4" />
-          Send
+          {isLoading ? "Sending" : "Send"}
         </Button>
       </div>
     </div>
   );
 }
-// Create the message input component.
-//
-// Requirements:
-// - Use a textarea.
-// - Send button with an icon.
-// - Support Enter to send.
-// - Support Shift + Enter for a new line.
-// - Disable sending when:
-//   - input is empty.
-//   - loading is true.
-//
-// Props:
-// - onSendMessage.
-// - isLoading.
-//
-// Important:
-// - This component only handles input behavior.
-// - The parent controls the actual message state.
-//
-// Use shadcn Textarea and Button.

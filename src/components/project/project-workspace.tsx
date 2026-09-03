@@ -25,21 +25,6 @@ interface ProjectWorkspaceProps {
   initialDocuments: Document[];
 }
 
-function buildAssistantResponse(
-  question: string,
-  project: Project,
-  documents: Document[],
-) {
-  const readyDocs = documents
-    .filter((document) => document.status === "READY")
-    .slice(0, 3);
-  const summary = readyDocs.length
-    ? `I looked at ${readyDocs.map((document) => document.fileName).join(", ")} and pulled together the most relevant notes.`
-    : "I do not have any ready documents to reference yet, but the workspace is ready for more notes.";
-
-  return `${summary} You asked: “${question}”. For ${project.name}, a good next step is to break the topic into smaller questions and save the useful parts back into your notes.`;
-}
-
 export function ProjectWorkspace({
   project,
   user,
@@ -49,18 +34,15 @@ export function ProjectWorkspace({
 }: ProjectWorkspaceProps) {
   const [chats, setChats] = useState(initialChats);
   const [documents, setDocuments] = useState(initialDocuments);
-  const [messages, setMessages] = useState(initialMessages);
   const [activeChatId, setActiveChatId] = useState<string | null>(
     initialChats[0]?.id ?? null,
   );
-  const [isLoading, setIsLoading] = useState(false);
   const [mobileChatsOpen, setMobileChatsOpen] = useState(false);
   const [mobileDocsOpen, setMobileDocsOpen] = useState(false);
 
   useEffect(() => {
     setChats(initialChats);
     setDocuments(initialDocuments);
-    setMessages(initialMessages);
     setActiveChatId(initialChats[0]?.id ?? null);
   }, [initialChats, initialDocuments, initialMessages, project.id]);
 
@@ -70,109 +52,110 @@ export function ProjectWorkspace({
   );
 
   const activeMessages = useMemo(
-    () => messages.filter((message) => message.chatId === activeChat?.id),
-    [activeChat?.id, messages],
+    () =>
+      initialMessages.filter((message) => message.chatId === activeChat?.id),
+    [activeChat?.id, initialMessages],
   );
 
-  const createChat = () => {
-    const now = new Date().toISOString();
-    const newChat: Chat = {
-      id: `chat-${project.id}-${Date.now()}`,
-      projectId: project.id,
-      userId: user.id,
-      title: "New chat",
-      createdAt: now,
-      updatedAt: now,
-    };
+  const createChat = async () => {
+    const response = await fetch("/api/chats", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ projectId: project.id }),
+    });
 
+    const payload = await response.json();
+    if (!response.ok || !payload.success) {
+      throw new Error(payload?.error?.message ?? "Failed to create chat.");
+    }
+
+    const newChat = payload.data.chat as Chat;
     setChats((current) => [newChat, ...current]);
     setActiveChatId(newChat.id);
   };
 
-  const sendMessage = (content: string) => {
-    if (!activeChat) {
+  const renameChat = async (chatId: string) => {
+    const currentChat = chats.find((chat) => chat.id === chatId);
+    if (!currentChat) {
       return;
     }
 
-    const now = new Date().toISOString();
-    const userMessage: Message = {
-      id: `message-${Date.now()}`,
-      chatId: activeChat.id,
-      role: "USER",
-      content,
-      createdAt: now,
-    };
+    const nextTitle = window.prompt("Rename chat", currentChat.title)?.trim();
+    if (!nextTitle) {
+      return;
+    }
 
-    setMessages((current) => [...current, userMessage]);
-    setIsLoading(true);
+    const response = await fetch(`/api/chats/${chatId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ title: nextTitle }),
+    });
 
-    window.setTimeout(() => {
-      const assistantMessage: Message = {
-        id: `message-${Date.now()}-assistant`,
-        chatId: activeChat.id,
-        role: "ASSISTANT",
-        content: buildAssistantResponse(content, project, documents),
-        sources: documents
-          .filter((document) => document.status === "READY")
-          .slice(0, 3)
-          .map((document) => document.fileName),
-        createdAt: new Date().toISOString(),
-      };
+    const payload = await response.json();
+    if (!response.ok || !payload.success) {
+      throw new Error(payload?.error?.message ?? "Failed to rename chat.");
+    }
 
-      setMessages((current) => [...current, assistantMessage]);
-      setChats((current) =>
-        current.map((chat) =>
-          chat.id === activeChat.id
-            ? {
-                ...chat,
-                updatedAt: new Date().toISOString(),
-                title:
-                  chat.title === "New chat" ? content.slice(0, 32) : chat.title,
-              }
-            : chat,
-        ),
-      );
-      setIsLoading(false);
-    }, 850);
+    setChats((current) =>
+      current.map((chat) => (chat.id === chatId ? payload.data.chat : chat)),
+    );
   };
 
-  const uploadDocument = (
-    document: Omit<Document, "id" | "createdAt" | "projectId" | "userId">,
-    fileName: string,
-  ) => {
-    const nextDocument: Document = {
-      ...document,
-      id: `document-${Date.now()}`,
-      projectId: project.id,
-      userId: user.id,
-      fileName,
-      createdAt: new Date().toISOString(),
-    };
+  const deleteChat = async (chatId: string) => {
+    const response = await fetch(`/api/chats/${chatId}`, { method: "DELETE" });
+    const payload = await response.json();
 
-    setDocuments((current) => [nextDocument, ...current]);
+    if (!response.ok || !payload.success) {
+      throw new Error(payload?.error?.message ?? "Failed to delete chat.");
+    }
 
-    window.setTimeout(() => {
-      setDocuments((current) =>
-        current.map((item) =>
-          item.id === nextDocument.id
-            ? {
-                ...item,
-                status: Math.random() > 0.14 ? "READY" : "FAILED",
-                chunkCount: Math.max(1, Math.ceil(item.fileSize / 1800)),
-                error:
-                  Math.random() > 0.14
-                    ? null
-                    : "Mock processing failed while parsing the document.",
-              }
-            : item,
-        ),
-      );
-    }, 1500);
+    setChats((current) => current.filter((chat) => chat.id !== chatId));
+    setActiveChatId((current) => (current === chatId ? null : current));
   };
 
-  const deleteDocument = (documentId: string) => {
+  const uploadDocument = async (file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await fetch(`/api/projects/${project.id}/documents`, {
+      method: "POST",
+      body: formData,
+    });
+
+    const payload = await response.json();
+    if (!response.ok || !payload.success) {
+      throw new Error(payload?.error?.message ?? "Failed to upload document.");
+    }
+
+    setDocuments((current) => [payload.data.document as Document, ...current]);
+  };
+
+  const deleteDocument = async (documentId: string) => {
+    const response = await fetch(`/api/documents/${documentId}`, {
+      method: "DELETE",
+    });
+
+    const payload = await response.json();
+    if (!response.ok || !payload.success) {
+      throw new Error(payload?.error?.message ?? "Failed to delete document.");
+    }
+
     setDocuments((current) =>
       current.filter((document) => document.id !== documentId),
+    );
+  };
+
+  const handleChatTitleChange = (chatId: string, title: string) => {
+    setChats((current) =>
+      current.map((chat) =>
+        chat.id === chatId
+          ? {
+              ...chat,
+              title,
+              updatedAt: new Date().toISOString(),
+            }
+          : chat,
+      ),
     );
   };
 
@@ -184,6 +167,8 @@ export function ProjectWorkspace({
           activeChatId={activeChat?.id ?? null}
           onSelectChat={setActiveChatId}
           onCreateChat={createChat}
+          onRenameChat={renameChat}
+          onDeleteChat={deleteChat}
         />
       </div>
 
@@ -191,9 +176,7 @@ export function ProjectWorkspace({
         <div className="flex items-center justify-between gap-3 rounded-3xl border bg-card/90 px-4 py-3 xl:hidden">
           <div>
             <p className="text-sm text-muted-foreground">Workspace panels</p>
-            <p className="font-medium">
-              Mobile uses sheets for chats and documents
-            </p>
+            <p className="font-medium"></p>
           </div>
           <div className="flex items-center gap-2">
             <Sheet open={mobileChatsOpen} onOpenChange={setMobileChatsOpen}>
@@ -216,6 +199,8 @@ export function ProjectWorkspace({
                       setMobileChatsOpen(false);
                     }}
                     onCreateChat={createChat}
+                    onRenameChat={renameChat}
+                    onDeleteChat={deleteChat}
                   />
                 </div>
               </SheetContent>
@@ -246,9 +231,8 @@ export function ProjectWorkspace({
         <ChatContainer
           activeChat={activeChat}
           messages={activeMessages}
-          isLoading={isLoading}
-          onSendMessage={sendMessage}
-          onPromptSelect={sendMessage}
+          key={activeChat?.id ?? "no-chat"}
+          onChatUpdated={handleChatTitleChange}
           onOpenChats={() => setMobileChatsOpen(true)}
           onOpenDocuments={() => setMobileDocsOpen(true)}
         />
@@ -264,27 +248,3 @@ export function ProjectWorkspace({
     </div>
   );
 }
-// Create the main three-column project workspace.
-//
-// Layout:
-//
-// Desktop:
-// [ Chat Sidebar ] [ AI Chat ] [ Documents Panel ]
-//
-// Requirements:
-// - Manage frontend state for:
-//   - Active chat.
-//   - Chat messages.
-//   - Chats list.
-//   - Documents list.
-// - Pass state and callbacks to child components.
-//
-// Responsive behavior:
-// - Desktop: three-column layout.
-// - Tablet: documents or chat sidebar may collapse.
-// - Mobile: use Sheet/Drawer-style panels.
-//
-// Important:
-// - Keep all data frontend-only.
-// - Simulate interactions using local state.
-// - The center AI chat should remain the primary focus.

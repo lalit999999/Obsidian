@@ -1,5 +1,7 @@
 "use client";
 
+import { useState } from "react";
+
 import { Ellipsis, MessageSquare, Pencil, Plus, Trash2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -18,7 +20,9 @@ interface ChatSidebarProps {
   chats: Chat[];
   activeChatId: string | null;
   onSelectChat: (chatId: string) => void;
-  onCreateChat: () => void;
+  onCreateChat: () => Promise<void> | void;
+  onRenameChat?: (chatId: string) => Promise<void> | void;
+  onDeleteChat?: (chatId: string) => Promise<void> | void;
 }
 
 export function ChatSidebar({
@@ -26,17 +30,38 @@ export function ChatSidebar({
   activeChatId,
   onSelectChat,
   onCreateChat,
+  onRenameChat,
+  onDeleteChat,
 }: ChatSidebarProps) {
+  const [isCreating, setIsCreating] = useState(false);
+
+  const handleCreateChat = async () => {
+    if (isCreating) {
+      return;
+    }
+
+    setIsCreating(true);
+
+    try {
+      await onCreateChat();
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
   return (
-    <aside className="flex h-full min-h-[420px] flex-col rounded-3xl border bg-card/90">
+    <aside
+      className="flex h-full flex-col rounded-3xl border bg-card/90"
+      style={{ minHeight: 420 }}
+    >
       <div className="flex items-center justify-between border-b px-4 py-4">
         <div>
           <p className="text-sm text-muted-foreground">Chats</p>
           <h3 className="text-lg font-semibold">Conversation list</h3>
         </div>
-        <Button size="sm" onClick={onCreateChat}>
+        <Button size="sm" onClick={handleCreateChat} disabled={isCreating}>
           <Plus className="size-4" />
-          New chat
+          {isCreating ? "Creating" : "New chat"}
         </Button>
       </div>
       <ScrollArea className="flex-1">
@@ -81,12 +106,19 @@ export function ChatSidebar({
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem>
+                    <DropdownMenuItem
+                      disabled={!onRenameChat}
+                      onClick={() => onRenameChat?.(chat.id)}
+                    >
                       <Pencil className="mr-2 size-4" />
                       Rename
                     </DropdownMenuItem>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem className="text-destructive focus:text-destructive">
+                    <DropdownMenuItem
+                      disabled={!onDeleteChat}
+                      onClick={() => onDeleteChat?.(chat.id)}
+                      className="text-destructive focus:text-destructive"
+                    >
                       <Trash2 className="mr-2 size-4" />
                       Delete
                     </DropdownMenuItem>

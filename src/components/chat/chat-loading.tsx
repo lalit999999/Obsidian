@@ -7,22 +7,11 @@ export function ChatLoading() {
       <Card className="max-w-[80%] rounded-3xl bg-card px-4 py-3 shadow-sm">
         <div className="space-y-3">
           <Skeleton className="h-3 w-20" />
-          <Skeleton className="h-3 w-[280px] max-w-full" />
-          <Skeleton className="h-3 w-[220px] max-w-full" />
+          <Skeleton className="h-3 max-w-full" style={{ width: 280 }} />
+          <Skeleton className="h-3 max-w-full" style={{ width: 220 }} />
         </div>
         <p className="mt-3 text-sm text-muted-foreground">Thinking…</p>
       </Card>
     </div>
   );
 }
-// Create the AI response loading indicator.
-//
-// Requirements:
-// - Display a subtle animated loading state.
-// - Show text such as "Thinking...".
-// - Use shadcn Skeleton if appropriate.
-// - Keep it visually consistent with assistant messages.
-//
-// Important:
-// - This only represents a frontend loading state.
-// - No actual AI request is made in Part 1.

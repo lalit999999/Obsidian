@@ -1,21 +1,19 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import type { Chat, Message } from "@/types";
+import type { Chat } from "@/types";
+import type { ChatMessage, SendMessageResponse } from "@/types/chat";
 import { ChatEmptyState } from "./chat-empty-state";
+import { ChatMessages } from "./chat-messages";
 import { ChatInput } from "./chat-input";
-import { ChatLoading } from "./chat-loading";
-import { ChatMessage } from "./chat-message";
 
 interface ChatContainerProps {
   activeChat?: Chat;
-  messages: Message[];
-  isLoading: boolean;
-  onSendMessage: (message: string) => void;
-  onPromptSelect: (prompt: string) => void;
+  messages: ChatMessage[];
+  onChatUpdated?: (chatId: string, title: string) => void;
   onOpenChats?: () => void;
   onOpenDocuments?: () => void;
 }
@@ -23,19 +21,91 @@ interface ChatContainerProps {
 export function ChatContainer({
   activeChat,
   messages,
-  isLoading,
-  onSendMessage,
-  onPromptSelect,
+  onChatUpdated,
   onOpenChats,
   onOpenDocuments,
 }: ChatContainerProps) {
-  const endRef = useRef<HTMLDivElement | null>(null);
+  const [localMessages, setLocalMessages] = useState(messages);
+  const [isSending, setIsSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [messages, isLoading]);
+    setLocalMessages(messages);
+  }, [messages, activeChat?.id]);
 
-  const showEmptyState = !activeChat || messages.length === 0;
+  const sendMessage = async (content: string) => {
+    if (!activeChat || isSending) {
+      return;
+    }
+
+    const trimmed = content.trim();
+    if (!trimmed) {
+      return;
+    }
+
+    setIsSending(true);
+    setError(null);
+
+    const temporaryUserMessage: ChatMessage = {
+      id: `temp-${Date.now()}`,
+      chatId: activeChat.id,
+      role: "USER",
+      content: trimmed,
+      createdAt: new Date().toISOString(),
+    };
+
+    setLocalMessages((current) => [...current, temporaryUserMessage]);
+
+    try {
+      const response = await fetch(`/api/chats/${activeChat.id}/messages`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ content: trimmed }),
+      });
+
+      const payload = (await response.json()) as
+        | SendMessageResponse
+        | { success: false; error?: { message?: string } };
+
+      if (!response.ok || !payload.success) {
+        throw new Error(
+          !response.ok
+            ? payload && "error" in payload && payload.error?.message
+              ? payload.error.message
+              : "Failed to send message."
+            : "Failed to send message.",
+        );
+      }
+
+      setLocalMessages((current) => {
+        const withoutTemp = current.filter(
+          (message) => message.id !== temporaryUserMessage.id,
+        );
+        return [
+          ...withoutTemp,
+          payload.data.userMessage,
+          payload.data.assistantMessage,
+        ];
+      });
+
+      if (activeChat.title === "New chat") {
+        onChatUpdated?.(activeChat.id, trimmed.slice(0, 120));
+      }
+    } catch (error) {
+      setError(
+        error instanceof Error ? error.message : "Something went wrong.",
+      );
+      setLocalMessages((current) =>
+        current.filter((message) => message.id !== temporaryUserMessage.id),
+      );
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  const showEmptyState = !activeChat || localMessages.length === 0;
 
   return (
     <Card className="flex h-full min-h-[calc(100vh-10rem)] flex-col overflow-hidden border-border/80 bg-card/90">
@@ -62,48 +132,26 @@ export function ChatContainer({
 
       <div className="flex-1 overflow-y-auto px-4 py-5">
         {showEmptyState ? (
-          <ChatEmptyState onSelectPrompt={onPromptSelect} />
+          <ChatEmptyState onSelectPrompt={sendMessage} />
         ) : (
-          <div className="space-y-4">
-            {messages.map((message) => (
-              <ChatMessage
-                key={message.id}
-                role={message.role}
-                content={message.content}
-                createdAt={message.createdAt}
-                sources={message.sources}
-              />
-            ))}
-            {isLoading ? <ChatLoading /> : null}
-            <div ref={endRef} />
-          </div>
+          <ChatMessages
+            messages={localMessages}
+            isLoading={isSending}
+            onPromptSelect={sendMessage}
+          />
         )}
       </div>
 
-      <ChatInput onSendMessage={onSendMessage} isLoading={isLoading} />
+      {error ? (
+        <div className="border-t px-4 pt-3 text-sm text-destructive">
+          {error}
+        </div>
+      ) : null}
+      <ChatInput
+        onSendMessage={sendMessage}
+        isLoading={isSending}
+        error={error}
+      />
     </Card>
   );
 }
-// Create the main AI chat area.
-//
-// Props should include:
-// - Active chat.
-// - Messages.
-// - Loading state.
-// - Send message callback.
-//
-// Requirements:
-// - If no active chat exists, show ChatEmptyState.
-// - Otherwise render:
-//   - Chat messages.
-//   - ChatLoading when loading.
-//   - ChatInput at the bottom.
-//
-// Layout:
-// - Header area if useful.
-// - Scrollable messages area.
-// - Sticky input area.
-//
-// Important:
-// - Automatically scroll to the latest message.
-// - Keep this component focused on layout and orchestration.

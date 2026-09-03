@@ -3,13 +3,14 @@ import { Bot, UserRound } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
+import type { ChatMessageSource } from "@/types/chat";
 import type { MessageRole } from "@/types";
 
 interface ChatMessageProps {
   role: MessageRole;
   content: string;
   createdAt: string;
-  sources?: string[];
+  sources?: ChatMessageSource[] | null;
 }
 
 export function ChatMessage({
@@ -57,11 +58,11 @@ export function ChatMessage({
               <div className="mt-3 flex flex-wrap gap-2">
                 {sources.map((source) => (
                   <Badge
-                    key={source}
+                    key={`${source.documentId}:${source.chunkIndex}`}
                     variant="secondary"
                     className="rounded-full text-xs"
                   >
-                    {source}
+                    {source.fileName} · #{source.chunkIndex + 1}
                   </Badge>
                 ))}
               </div>
@@ -79,28 +80,3 @@ export function ChatMessage({
     </div>
   );
 }
-// Create a reusable chat message component.
-//
-// Props:
-// - role: USER | ASSISTANT.
-// - content.
-// - createdAt.
-// - optional sources.
-//
-// Requirements:
-// - Visually distinguish user and assistant messages.
-// - User messages should be aligned differently from assistant messages.
-// - Support multiline text.
-// - Add a simple timestamp if useful.
-//
-// For assistant messages:
-// - Optionally render mock source citations.
-// - Do not implement actual RAG citation logic.
-//
-// Use:
-// - shadcn Avatar if useful.
-// - shadcn Card or clean styled containers.
-//
-// Design:
-// - User messages can use the pink primary accent.
-// - Assistant messages should remain neutral and readable.

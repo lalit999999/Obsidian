@@ -2,7 +2,7 @@ import { NextRequest } from "next/server";
 
 import { deleteChatAction, renameChatAction } from "@/actions/chat/chat";
 import { requireCurrentUser } from "@/lib/auth";
-import { handleRouteError, jsonSuccess } from "@/lib/http";
+import { handleRouteError, jsonError, jsonSuccess } from "@/lib/http";
 import { getOwnedChat } from "@/lib/ownership";
 import { prisma } from "@/lib/prisma";
 import { serializeChat, serializeMessage } from "@/lib/serializers";
@@ -24,7 +24,7 @@ export async function GET(_: NextRequest, { params }: RouteParams) {
     });
 
     if (!chat) {
-      return jsonSuccess({ chat: null }, { status: 404 });
+      return jsonError("Chat not found.", 404, "NOT_FOUND");
     }
 
     return jsonSuccess({

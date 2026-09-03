@@ -200,7 +200,20 @@ export const mockMessages: Message[] = [
     role: "ASSISTANT",
     content:
       "The event loop is the coordinator that keeps JavaScript responsive. It moves completed callbacks from task queues back onto the call stack, which is why timers, promises, and I/O each feel asynchronous even though the runtime executes one thing at a time.",
-    sources: ["event-loop-cheatsheet.md", "async-patterns.txt"],
+    sources: [
+      {
+        documentId: "doc-js-event-loop",
+        fileName: "event-loop-cheatsheet.md",
+        chunkIndex: 2,
+        score: 0.9875,
+      },
+      {
+        documentId: "doc-js-async",
+        fileName: "async-patterns.txt",
+        chunkIndex: 1,
+        score: 0.9531,
+      },
+    ],
     createdAt: hoursAgo(6),
   },
   {
@@ -216,7 +229,14 @@ export const mockMessages: Message[] = [
     role: "ASSISTANT",
     content:
       "JavaScript runs on a single call stack, so async work is handled by the runtime and returned to the stack later through the event loop. Promise callbacks are scheduled as microtasks and usually run before timers, which is why async/await feels immediate even when the underlying work finishes later.",
-    sources: ["event-loop-cheatsheet.md"],
+    sources: [
+      {
+        documentId: "doc-js-event-loop",
+        fileName: "event-loop-cheatsheet.md",
+        chunkIndex: 4,
+        score: 0.9722,
+      },
+    ],
     createdAt: hoursAgo(5),
   },
   {
@@ -232,7 +252,14 @@ export const mockMessages: Message[] = [
     role: "ASSISTANT",
     content:
       "Think in nested layouts and route segments. Server components are the default, client components are only for interactivity, and the file system defines the route shape, so the most maintainable apps keep shared chrome in layouts and page-specific UI close to the route.",
-    sources: ["app-router-guide.md"],
+    sources: [
+      {
+        documentId: "doc-next-routing",
+        fileName: "app-router-guide.md",
+        chunkIndex: 3,
+        score: 0.9614,
+      },
+    ],
     createdAt: hoursAgo(15),
   },
 ];

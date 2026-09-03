@@ -1,21 +1,19 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import type { Chat } from "@/types";
 import type { ChatMessage, SendMessageResponse } from "@/types/chat";
+import { ChatEmptyState } from "./chat-empty-state";
 import { ChatMessages } from "./chat-messages";
 import { ChatInput } from "./chat-input";
 
 interface ChatContainerProps {
   activeChat?: Chat;
   messages: ChatMessage[];
-  projectId: string;
-  onSendMessage?: (message: string) => void;
   onChatUpdated?: (chatId: string, title: string) => void;
-  onPromptSelect: (prompt: string) => void;
   onOpenChats?: () => void;
   onOpenDocuments?: () => void;
 }
@@ -23,10 +21,7 @@ interface ChatContainerProps {
 export function ChatContainer({
   activeChat,
   messages,
-  projectId,
-  onSendMessage,
   onChatUpdated,
-  onPromptSelect,
   onOpenChats,
   onOpenDocuments,
 }: ChatContainerProps) {
@@ -98,8 +93,6 @@ export function ChatContainer({
       if (activeChat.title === "New chat") {
         onChatUpdated?.(activeChat.id, trimmed.slice(0, 120));
       }
-
-      onSendMessage?.(trimmed);
     } catch (error) {
       setError(
         error instanceof Error ? error.message : "Something went wrong.",
@@ -139,12 +132,12 @@ export function ChatContainer({
 
       <div className="flex-1 overflow-y-auto px-4 py-5">
         {showEmptyState ? (
-          <ChatEmptyState onSelectPrompt={onPromptSelect} />
+          <ChatEmptyState onSelectPrompt={sendMessage} />
         ) : (
           <ChatMessages
             messages={localMessages}
             isLoading={isSending}
-            onPromptSelect={onPromptSelect}
+            onPromptSelect={sendMessage}
           />
         )}
       </div>

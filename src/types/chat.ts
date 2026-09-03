@@ -1,4 +1,4 @@
-import type { MessageRole } from "./index";
+export type MessageRole = "USER" | "ASSISTANT";
 
 export interface ChatMessageSource {
   documentId: string;

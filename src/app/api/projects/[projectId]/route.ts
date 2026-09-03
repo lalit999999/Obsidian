@@ -5,7 +5,7 @@ import {
   updateProjectAction,
 } from "@/actions/project/project";
 import { requireCurrentUser } from "@/lib/auth";
-import { handleRouteError, jsonSuccess } from "@/lib/http";
+import { handleRouteError, jsonError, jsonSuccess } from "@/lib/http";
 import { getOwnedProject } from "@/lib/ownership";
 import { prisma } from "@/lib/prisma";
 import { parseUpdateProjectInput } from "@/lib/validations";
@@ -25,7 +25,7 @@ export async function GET(_: NextRequest, { params }: RouteParams) {
     });
 
     if (!project) {
-      return jsonSuccess({ project: null }, { status: 404 });
+      return jsonError("Project not found.", 404, "NOT_FOUND");
     }
 
     return jsonSuccess({ project: serializeProject(project) });

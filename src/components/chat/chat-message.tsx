@@ -79,28 +79,40 @@ export function ChatMessage({
     </div>
   );
 }
-// Create a reusable chat message component.
-//
-// Props:
-// - role: USER | ASSISTANT.
-// - content.
-// - createdAt.
-// - optional sources.
-//
-// Requirements:
-// - Visually distinguish user and assistant messages.
-// - User messages should be aligned differently from assistant messages.
-// - Support multiline text.
-// - Add a simple timestamp if useful.
-//
-// For assistant messages:
-// - Optionally render mock source citations.
-// - Do not implement actual RAG citation logic.
-//
-// Use:
-// - shadcn Avatar if useful.
-// - shadcn Card or clean styled containers.
-//
-// Design:
-// - User messages can use the pink primary accent.
-// - Assistant messages should remain neutral and readable.
+/**
+ * CHAT MESSAGES
+ *
+ * Render the list of conversation messages.
+ *
+ * Responsibilities:
+ * - Render messages in chronological order.
+ * - Use ChatMessage for each message.
+ * - Automatically scroll to the latest message when appropriate.
+ * - Handle an empty conversation.
+ *
+ * The component should not perform API calls.
+ *
+ * Keep scrolling behavior smooth and avoid excessive
+ * scroll operations.
+ */
+
+
+/**
+ * CHAT MESSAGE
+ *
+ * Render a single USER or ASSISTANT message.
+ *
+ * Responsibilities:
+ *
+ * - Visually distinguish USER and ASSISTANT roles.
+ * - Render message content safely.
+ * - Display assistant source metadata when available.
+ * - Show source file names in a compact UI.
+ *
+ * For MVP:
+ * - Keep source display simple.
+ * - Do not expose raw Qdrant payloads.
+ *
+ * If markdown rendering is used, ensure user content is
+ * handled safely.
+ */

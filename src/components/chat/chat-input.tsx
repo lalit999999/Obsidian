@@ -51,23 +51,31 @@ export function ChatInput({ onSendMessage, isLoading }: ChatInputProps) {
     </div>
   );
 }
-// Create the message input component.
-//
-// Requirements:
-// - Use a textarea.
-// - Send button with an icon.
-// - Support Enter to send.
-// - Support Shift + Enter for a new line.
-// - Disable sending when:
-//   - input is empty.
-//   - loading is true.
-//
-// Props:
-// - onSendMessage.
-// - isLoading.
-//
-// Important:
-// - This component only handles input behavior.
-// - The parent controls the actual message state.
-//
-// Use shadcn Textarea and Button.
+
+/**
+ * CHAT INPUT
+ *
+ * Implement the message composer.
+ *
+ * Props should support:
+ * - onSend(message)
+ * - disabled
+ * - isSending
+ *
+ * Responsibilities:
+ *
+ * - Maintain controlled input state.
+ * - Trim input before sending.
+ * - Prevent empty messages.
+ * - Submit on Enter when appropriate.
+ * - Support Shift + Enter for a new line.
+ * - Disable submission while AI response generation is active.
+ *
+ * UX:
+ * - Clear the input after successful submission.
+ * - Keep the input accessible.
+ * - Show a useful loading/send state.
+ *
+ * This component should not directly call backend routes.
+ * The parent ChatContainer controls network requests.
+ */

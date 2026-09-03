@@ -15,14 +15,21 @@ export function ChatLoading() {
     </div>
   );
 }
-// Create the AI response loading indicator.
-//
-// Requirements:
-// - Display a subtle animated loading state.
-// - Show text such as "Thinking...".
-// - Use shadcn Skeleton if appropriate.
-// - Keep it visually consistent with assistant messages.
-//
-// Important:
-// - This only represents a frontend loading state.
-// - No actual AI request is made in Part 1.
+
+
+/**
+ * CHAT LOADING
+ *
+ * Render the assistant response loading indicator.
+ *
+ * This component is displayed after the user message
+ * while the backend is:
+ *
+ * - retrieving RAG context
+ * - generating the AI response
+ *
+ * Keep the loading UI lightweight and consistent with
+ * the application's shadcn-based design.
+ *
+ * Do not use fake generated text as the final answer.
+ */

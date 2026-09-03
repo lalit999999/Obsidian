@@ -52,12 +52,15 @@ export const MESSAGE_ROLES = ["USER", "ASSISTANT"] as const;
 
 export type MessageRole = (typeof MESSAGE_ROLES)[number];
 
+export * from "./chat";
+export * from "./api";
+
 export interface Message {
   id: string;
   chatId: string;
   role: MessageRole;
   content: string;
-  sources?: string[];
+  sources?: import("./chat").ChatMessageSource[] | null;
   createdAt: string;
 }
 

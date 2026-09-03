@@ -84,26 +84,51 @@ export function ChatContainer({
     </Card>
   );
 }
-// Create the main AI chat area.
-//
-// Props should include:
-// - Active chat.
-// - Messages.
-// - Loading state.
-// - Send message callback.
-//
-// Requirements:
-// - If no active chat exists, show ChatEmptyState.
-// - Otherwise render:
-//   - Chat messages.
-//   - ChatLoading when loading.
-//   - ChatInput at the bottom.
-//
-// Layout:
-// - Header area if useful.
-// - Scrollable messages area.
-// - Sticky input area.
-//
-// Important:
-// - Automatically scroll to the latest message.
-// - Keep this component focused on layout and orchestration.
+/**
+ * CHAT CONTAINER
+ *
+ * This is the main client-side chat controller.
+ *
+ * Responsibilities:
+ *
+ * - Receive projectId and active chat information.
+ * - Manage optimistic/local message state.
+ * - Manage sending state.
+ * - Call the AI message API.
+ * - Display loading state while the AI responds.
+ * - Handle API errors.
+ * - Update messages after successful responses.
+ *
+ * Important state:
+ *
+ * messages
+ * isSending
+ * error
+ *
+ * Send flow:
+ *
+ * User submits
+ *      ↓
+ * Add temporary user message to UI
+ *      ↓
+ * Clear input
+ *      ↓
+ * Set isSending = true
+ *      ↓
+ * POST to message API
+ *      ↓
+ * Receive assistant response
+ *      ↓
+ * Add persisted response to UI
+ *      ↓
+ * Set isSending = false
+ *
+ * Prevent duplicate sends while a request is active.
+ *
+ * Compose:
+ * - ChatMessages
+ * - ChatLoading
+ * - ChatInput
+ *
+ * Handle the case where no chat is currently selected.
+ */

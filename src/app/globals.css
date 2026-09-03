@@ -131,3 +131,24 @@
     @apply font-sans;
   }
 }
+
+
+/*
+TODO:
+Configure the global application styles.
+
+Requirements:
+- Include Tailwind base, components, and utilities.
+- Configure CSS variables compatible with shadcn/ui.
+- Create a modern pink-based theme.
+- Use pink/rose tones as the primary accent color.
+- Support light mode.
+- Add dark mode variables if the existing shadcn setup supports them.
+- Keep backgrounds clean and mostly neutral so pink remains an accent.
+
+Important:
+- Do not create custom UI components here.
+- The application should primarily use shadcn/ui components.
+- Ensure buttons, borders, rings, cards, muted colors, and sidebar colors
+  work consistently with the pink theme.
+*/

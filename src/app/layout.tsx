@@ -30,3 +30,20 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     </html>
   );
 }
+
+
+
+// TODO:
+// Create the root application layout.
+//
+// Requirements:
+// - Import globals.css.
+// - Add the application metadata.
+// - Use a clean font setup.
+// - Render the children prop.
+// - Keep this file simple because this is the global layout.
+//
+// Design:
+// - The complete application should use a pink-based theme.
+// - Use the theme variables defined in globals.css.
+// - Do not add backend logic or authentication logic yet.

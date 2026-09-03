@@ -52,7 +52,8 @@ export function ProjectWorkspace({
   );
 
   const activeMessages = useMemo(
-    () => initialMessages.filter((message) => message.chatId === activeChat?.id),
+    () =>
+      initialMessages.filter((message) => message.chatId === activeChat?.id),
     [activeChat?.id, initialMessages],
   );
 
@@ -139,7 +140,9 @@ export function ProjectWorkspace({
       throw new Error(payload?.error?.message ?? "Failed to delete document.");
     }
 
-    setDocuments((current) => current.filter((document) => document.id !== documentId));
+    setDocuments((current) =>
+      current.filter((document) => document.id !== documentId),
+    );
   };
 
   const handleChatTitleChange = (chatId: string, title: string) => {
@@ -173,8 +176,7 @@ export function ProjectWorkspace({
         <div className="flex items-center justify-between gap-3 rounded-3xl border bg-card/90 px-4 py-3 xl:hidden">
           <div>
             <p className="text-sm text-muted-foreground">Workspace panels</p>
-            <p className="font-medium">
-            </p>
+            <p className="font-medium"></p>
           </div>
           <div className="flex items-center gap-2">
             <Sheet open={mobileChatsOpen} onOpenChange={setMobileChatsOpen}>

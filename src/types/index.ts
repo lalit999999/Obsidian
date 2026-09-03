@@ -1,62 +1,68 @@
-// TODO:
-// Define TypeScript types and interfaces used by the frontend.
-//
-// Include:
-//
-// User
-// - id
-// - name
-// - email
-// - image
-// - createdAt
-//
-// Project
-// - id
-// - name
-// - description
-// - userId
-// - createdAt
-// - updatedAt
-//
-// DocumentStatus
-// - PENDING
-// - PROCESSING
-// - READY
-// - FAILED
-//
-// Document
-// - id
-// - projectId
-// - userId
-// - fileName
-// - fileSize
-// - mimeType
-// - status
-// - error
-// - chunkCount
-// - createdAt
-//
-// Chat
-// - id
-// - projectId
-// - userId
-// - title
-// - createdAt
-// - updatedAt
-//
-// MessageRole
-// - USER
-// - ASSISTANT
-//
-// Message
-// - id
-// - chatId
-// - role
-// - content
-// - sources
-// - createdAt
-//
-// Requirements:
-// - Keep types frontend-friendly.
-// - Do not import Prisma types.
-// - Keep this independent from the backend implementation.
+export interface User {
+  id: string;
+  name: string;
+  email: string;
+  image: string;
+  createdAt: string;
+}
+
+export interface Project {
+  id: string;
+  name: string;
+  description: string;
+  userId: string;
+  documentCount: number;
+  chatCount: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const DOCUMENT_STATUSES = [
+  "PENDING",
+  "PROCESSING",
+  "READY",
+  "FAILED",
+] as const;
+
+export type DocumentStatus = (typeof DOCUMENT_STATUSES)[number];
+
+export interface Document {
+  id: string;
+  projectId: string;
+  userId: string;
+  fileName: string;
+  fileSize: number;
+  mimeType: string;
+  status: DocumentStatus;
+  error?: string | null;
+  chunkCount: number;
+  createdAt: string;
+}
+
+export interface Chat {
+  id: string;
+  projectId: string;
+  userId: string;
+  title: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const MESSAGE_ROLES = ["USER", "ASSISTANT"] as const;
+
+export type MessageRole = (typeof MESSAGE_ROLES)[number];
+
+export interface Message {
+  id: string;
+  chatId: string;
+  role: MessageRole;
+  content: string;
+  sources?: string[];
+  createdAt: string;
+}
+
+export interface ProjectStatistics {
+  totalProjects: number;
+  totalDocuments: number;
+  totalChats: number;
+}

@@ -1,4 +1,105 @@
-// TODO:
+"use client";
+
+import { Ellipsis, MessageSquare, Pencil, Plus, Trash2 } from "lucide-react";
+
+import { Button } from "@/components/ui/button";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { cn } from "@/lib/utils";
+import type { Chat } from "@/types";
+
+interface ChatSidebarProps {
+  chats: Chat[];
+  activeChatId: string | null;
+  onSelectChat: (chatId: string) => void;
+  onCreateChat: () => void;
+}
+
+export function ChatSidebar({
+  chats,
+  activeChatId,
+  onSelectChat,
+  onCreateChat,
+}: ChatSidebarProps) {
+  return (
+    <aside className="flex h-full min-h-[420px] flex-col rounded-3xl border bg-card/90">
+      <div className="flex items-center justify-between border-b px-4 py-4">
+        <div>
+          <p className="text-sm text-muted-foreground">Chats</p>
+          <h3 className="text-lg font-semibold">Conversation list</h3>
+        </div>
+        <Button size="sm" onClick={onCreateChat}>
+          <Plus className="size-4" />
+          New chat
+        </Button>
+      </div>
+      <ScrollArea className="flex-1">
+        <div className="space-y-2 p-3">
+          {chats.map((chat) => {
+            const active = chat.id === activeChatId;
+
+            return (
+              <button
+                key={chat.id}
+                type="button"
+                onClick={() => onSelectChat(chat.id)}
+                className={cn(
+                  "flex w-full items-start justify-between gap-3 rounded-2xl border px-3 py-3 text-left transition-colors",
+                  active
+                    ? "border-primary/20 bg-primary/10"
+                    : "bg-background hover:bg-muted",
+                )}
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <MessageSquare
+                      className={cn(
+                        "size-4",
+                        active ? "text-primary" : "text-muted-foreground",
+                      )}
+                    />
+                    <p className="truncate text-sm font-medium">{chat.title}</p>
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Updated {new Date(chat.updatedAt).toLocaleDateString()}
+                  </p>
+                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      onClick={(event) => event.stopPropagation()}
+                    >
+                      <Ellipsis className="size-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuItem>
+                      <Pencil className="mr-2 size-4" />
+                      Rename
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem className="text-destructive focus:text-destructive">
+                      <Trash2 className="mr-2 size-4" />
+                      Delete
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </button>
+            );
+          })}
+        </div>
+      </ScrollArea>
+    </aside>
+  );
+}
 // Create the chat history sidebar.
 //
 // Include:

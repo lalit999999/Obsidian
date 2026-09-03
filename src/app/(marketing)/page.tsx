@@ -1,16 +1,19 @@
-// TODO:
-// Build the landing page by composing the landing components.
-//
-// Component order:
-// 1. Navbar
-// 2. HeroSection
-// 3. HowItWorks
-// 4. FeaturesSection
-// 5. CTASection
-// 6. Footer
-//
-// Requirements:
-// - Keep this page mostly a composition file.
-// - Do not place large UI implementations directly here.
-// - Make the page responsive.
-// - Use the pink-based design system.
+import { CTASection } from "@/components/landing/cta-section";
+import { FeaturesSection } from "@/components/landing/features-section";
+import { Footer } from "@/components/landing/footer";
+import { HeroSection } from "@/components/landing/hero-section";
+import { HowItWorks } from "@/components/landing/how-it-works";
+import { Navbar } from "@/components/landing/navbar";
+
+export default function MarketingPage() {
+  return (
+    <main>
+      <Navbar />
+      <HeroSection />
+      <HowItWorks />
+      <FeaturesSection />
+      <CTASection />
+      <Footer />
+    </main>
+  );
+}

@@ -21,7 +21,6 @@ export async function GET(_: NextRequest, { params }: RouteParams) {
 
     const documents = await prisma.document.findMany({
       where: { projectId, userId: currentUser.id },
-      orderBy: { createdAt: "desc" },
     });
 
     return jsonSuccess({ documents: documents.map(serializeDocument) });

@@ -23,7 +23,7 @@ export async function getOwnedChat(chatId: string, userId: string) {
     throw new NotFoundError("Chat not found.");
   }
 
-  if (chat.project.userId !== userId) {
+  if (chat.project?.userId !== userId) {
     throw new NotFoundError("Chat not found.");
   }
 
@@ -40,7 +40,7 @@ export async function getOwnedDocument(documentId: string, userId: string) {
     throw new NotFoundError("Document not found.");
   }
 
-  if (document.project.userId !== userId) {
+  if (document.project?.userId !== userId) {
     throw new NotFoundError("Document not found.");
   }
 

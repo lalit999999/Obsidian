@@ -21,7 +21,6 @@ export async function GET(request: NextRequest) {
 
     const chats = await prisma.chat.findMany({
       where: { projectId, userId: currentUser.id },
-      orderBy: { updatedAt: "desc" },
       include: { _count: { select: { messages: true } } },
     });
 

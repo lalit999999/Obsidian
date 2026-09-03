@@ -21,7 +21,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       include: { project: true },
     });
 
-    if (!chat || chat.project.userId !== currentUser.id) {
+    if (!chat || chat.project?.userId !== currentUser.id) {
       return jsonError("Chat not found.", 404, "NOT_FOUND");
     }
 

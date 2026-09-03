@@ -30,7 +30,7 @@ export async function GET(_: NextRequest, { params }: RouteParams) {
     return jsonSuccess({
       chat: {
         ...serializeChat(chat),
-        messages: chat.messages.map(serializeMessage),
+        messages: (chat.messages ?? []).map(serializeMessage),
       },
     });
   } catch (error) {

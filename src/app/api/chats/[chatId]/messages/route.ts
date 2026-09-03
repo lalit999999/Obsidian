@@ -4,7 +4,7 @@ import { generateChatResponse } from "@/actions/ai/chat";
 import { requireCurrentUser } from "@/lib/auth";
 import { handleRouteError, jsonError, jsonSuccess } from "@/lib/http";
 import { checkAiRateLimit } from "@/lib/rate-limit";
-import { prisma } from "@/lib/prisma";
+import { prisma, type Prisma } from "@/lib/prisma";
 import { parseChatMessageInput } from "@/lib/validations";
 import { serializeMessage } from "@/lib/serializers";
 
@@ -57,7 +57,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         chatId: chat.id,
         role: "ASSISTANT",
         content: aiResult.answer,
-        sources: aiResult.sources,
+        sources: aiResult.sources as unknown as Prisma.InputJsonValue,
       },
     });
 

@@ -1,10 +1,5 @@
-"use client";
+import { Sparkles } from "lucide-react";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { LockKeyhole, Mail, Sparkles } from "lucide-react";
-
-import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -12,31 +7,15 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
+import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
+import { signInWithGoogle } from "@/actions/auth/sign-in";
 
-export default function LoginPage() {
-  const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+interface LoginPageProps {
+  searchParams: Promise<{ error?: string }>;
+}
 
-  const canSubmit =
-    email.trim().length > 0 && password.trim().length > 0 && !isLoading;
-
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
-    if (!canSubmit) {
-      return;
-    }
-
-    setIsLoading(true);
-    window.setTimeout(() => {
-      router.push("/dashboard");
-    }, 500);
-  };
+export default async function LoginPage({ searchParams }: LoginPageProps) {
+  const { error } = await searchParams;
 
   return (
     <main className="flex min-h-screen items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
@@ -51,83 +30,17 @@ export default function LoginPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <form className="space-y-5" onSubmit={handleSubmit}>
-            <div className="space-y-2">
-              <Label htmlFor="login-email">Email</Label>
-              <div className="relative">
-                <Mail className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  id="login-email"
-                  type="email"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  className="pl-10"
-                  placeholder="maya@obsidian.ai"
-                />
-              </div>
-            </div>
+          {error ? (
+            <p className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-center text-sm text-destructive">
+              Sign-in failed. Please try again.
+            </p>
+          ) : null}
 
-            <div className="space-y-2">
-              <Label htmlFor="login-password">Password</Label>
-              <div className="relative">
-                <LockKeyhole className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                <Input
-                  id="login-password"
-                  type="password"
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  className="pl-10"
-                  placeholder="••••••••"
-                />
-              </div>
-            </div>
-
-            <Button type="submit" className="w-full" disabled={!canSubmit}>
-              {isLoading ? "Signing in…" : "Login"}
-            </Button>
+          <form action={signInWithGoogle}>
+            <GoogleSignInButton />
           </form>
-
-          <div className="my-6 flex items-center gap-3">
-            <Separator className="flex-1" />
-            <span className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
-              or
-            </span>
-            <Separator className="flex-1" />
-          </div>
-
-          <Button variant="outline" className="w-full" type="button">
-            Continue with Google
-          </Button>
         </CardContent>
       </Card>
     </main>
   );
 }
-// Build the login page UI.
-//
-// This is frontend-only for Part 1.
-//
-// Requirements:
-// - Center a login card on the page.
-// - Display application branding.
-// - Add email input.
-// - Add password input.
-// - Add a login button.
-// - Add an optional "Continue with Google" button as a visual placeholder.
-// - Add loading/disabled UI states if useful.
-//
-// Behavior for frontend MVP:
-// - Do not implement real authentication.
-// - On successful mock login, navigate to /dashboard.
-//
-// Use:
-// - shadcn Card.
-// - shadcn Input.
-// - shadcn Label.
-// - shadcn Button.
-// - shadcn Separator if useful.
-//
-// Design:
-// - Modern authentication page.
-// - Pink primary action.
-// - Responsive and accessible.

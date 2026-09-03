@@ -18,7 +18,11 @@ const links = [
   { href: "#cta", label: "Start" },
 ];
 
-export function Navbar() {
+interface NavbarProps {
+  isSignedIn?: boolean;
+}
+
+export function Navbar({ isSignedIn = false }: NavbarProps) {
   return (
     <header className="sticky top-0 z-40 border-b border-border/70 bg-background/85 backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
@@ -45,12 +49,20 @@ export function Navbar() {
         </nav>
 
         <div className="hidden items-center gap-3 md:flex">
-          <Button variant="ghost" asChild>
-            <Link href="/login">Login</Link>
-          </Button>
-          <Button asChild>
-            <Link href="/login">Get started</Link>
-          </Button>
+          {isSignedIn ? (
+            <Button asChild>
+              <Link href="/dashboard">Dashboard</Link>
+            </Button>
+          ) : (
+            <>
+              <Button variant="ghost" asChild>
+                <Link href="/login">Sign in</Link>
+              </Button>
+              <Button asChild>
+                <Link href="/login">Get started</Link>
+              </Button>
+            </>
+          )}
         </div>
 
         <Sheet>
@@ -74,12 +86,20 @@ export function Navbar() {
                   {link.label}
                 </a>
               ))}
-              <Button asChild variant="outline">
-                <Link href="/login">Login</Link>
-              </Button>
-              <Button asChild>
-                <Link href="/login">Get started</Link>
-              </Button>
+              {isSignedIn ? (
+                <Button asChild>
+                  <Link href="/dashboard">Dashboard</Link>
+                </Button>
+              ) : (
+                <>
+                  <Button asChild variant="outline">
+                    <Link href="/login">Sign in</Link>
+                  </Button>
+                  <Button asChild>
+                    <Link href="/login">Get started</Link>
+                  </Button>
+                </>
+              )}
             </div>
           </SheetContent>
         </Sheet>

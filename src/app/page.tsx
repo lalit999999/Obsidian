@@ -4,11 +4,14 @@ import { Footer } from "@/components/landing/footer";
 import { HeroSection } from "@/components/landing/hero-section";
 import { HowItWorks } from "@/components/landing/how-it-works";
 import { Navbar } from "@/components/landing/navbar";
+import { auth } from "@/auth";
 
-export default function HomePage() {
+export default async function HomePage() {
+  const session = await auth();
+
   return (
     <main>
-      <Navbar />
+      <Navbar isSignedIn={Boolean(session?.user)} />
       <HeroSection />
       <HowItWorks />
       <FeaturesSection />

@@ -7,6 +7,7 @@ import { BarChart3, LogOut, UserRound } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { signOutAction } from "@/actions/auth/sign-out";
 import type { User } from "@/types";
 
 interface DashboardSidebarProps {
@@ -69,14 +70,16 @@ export function DashboardSidebar({ user }: DashboardSidebarProps) {
             </p>
           </div>
         </div>
-        <Button
-          variant="ghost"
-          className="mt-3 w-full justify-start text-muted-foreground"
-          disabled
-        >
-          <LogOut className="size-4" />
-          Logout
-        </Button>
+        <form action={signOutAction}>
+          <Button
+            type="submit"
+            variant="ghost"
+            className="mt-3 w-full justify-start text-muted-foreground"
+          >
+            <LogOut className="size-4" />
+            Logout
+          </Button>
+        </form>
       </div>
     </aside>
   );

@@ -63,16 +63,20 @@ async function ProjectContent({
   const project = serializeProject(projectRecord);
 
   return (
-    <>
-      <ProjectHeader project={project} />
-      <ProjectWorkspace
-        project={project}
-        initialChats={chatRecords.map(serializeChat)}
-        initialDocuments={documentRecords.map(serializeDocument)}
-        initialActiveChatId={activeChatId}
-        initialMessages={messageRecords.map(serializeMessage)}
-      />
-    </>
+    <div className="flex h-full min-h-0 flex-col gap-4">
+      <div className="shrink-0">
+        <ProjectHeader project={project} />
+      </div>
+      <div className="min-h-0 flex-1">
+        <ProjectWorkspace
+          project={project}
+          initialChats={chatRecords.map(serializeChat)}
+          initialDocuments={documentRecords.map(serializeDocument)}
+          initialActiveChatId={activeChatId}
+          initialMessages={messageRecords.map(serializeMessage)}
+        />
+      </div>
+    </div>
   );
 }
 
@@ -87,7 +91,7 @@ export default async function ProjectPage({
   const currentUser = await requireCurrentUser();
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
+    <main className="mx-auto flex h-dvh max-w-7xl flex-col gap-4 overflow-hidden px-4 py-4 sm:px-6 lg:px-8">
       <Suspense fallback={<ProjectWorkspaceSkeleton />}>
         <ProjectContent
           projectId={projectId}

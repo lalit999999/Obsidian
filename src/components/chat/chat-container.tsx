@@ -108,15 +108,15 @@ export function ChatContainer({
   const showEmptyState = !activeChat || localMessages.length === 0;
 
   return (
-    <Card className="flex h-full min-h-[calc(100vh-10rem)] flex-col overflow-hidden border-border/80 bg-card/90">
-      <div className="flex items-center justify-between gap-3 border-b px-4 py-4">
+    <Card className="flex h-full min-h-0 flex-col overflow-hidden border-border/80 bg-card/90">
+      <div className="flex shrink-0 items-center justify-between gap-3 border-b px-4 py-4">
         <div>
           <p className="text-sm text-muted-foreground">AI chat</p>
           <h2 className="text-lg font-semibold">
             {activeChat ? activeChat.title : "Select a chat"}
           </h2>
         </div>
-        <div className="flex items-center gap-2 xl:hidden">
+        <div className="flex items-center gap-2 lg:hidden">
           {onOpenChats ? (
             <Button variant="outline" size="sm" onClick={onOpenChats}>
               Chats
@@ -130,7 +130,7 @@ export function ChatContainer({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 py-5">
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5">
         {showEmptyState ? (
           <ChatEmptyState onSelectPrompt={sendMessage} />
         ) : (
@@ -143,15 +143,17 @@ export function ChatContainer({
       </div>
 
       {error ? (
-        <div className="border-t px-4 pt-3 text-sm text-destructive">
+        <div className="shrink-0 border-t px-4 pt-3 text-sm text-destructive">
           {error}
         </div>
       ) : null}
-      <ChatInput
-        onSendMessage={sendMessage}
-        isLoading={isSending}
-        error={error}
-      />
+      <div className="shrink-0">
+        <ChatInput
+          onSendMessage={sendMessage}
+          isLoading={isSending}
+          error={error}
+        />
+      </div>
     </Card>
   );
 }

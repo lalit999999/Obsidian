@@ -1,4 +1,6 @@
-import { Sparkles } from "lucide-react";
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { Home, Sparkles } from "lucide-react";
 
 import {
   Card,
@@ -7,15 +9,23 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { GoogleSignInButton } from "@/components/auth/google-sign-in-button";
 import { signInWithGoogle } from "@/actions/auth/sign-in";
+import { auth } from "@/auth";
 
 interface LoginPageProps {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; callbackUrl?: string }>;
 }
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
-  const { error } = await searchParams;
+  const session = await auth();
+
+  if (session?.user) {
+    redirect("/dashboard");
+  }
+
+  const { error, callbackUrl } = await searchParams;
 
   return (
     <main className="flex min-h-screen items-center justify-center px-4 py-12 sm:px-6 lg:px-8">
@@ -29,16 +39,23 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             Sign in to your Obsidian AI workspace.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           {error ? (
-            <p className="mb-4 rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-center text-sm text-destructive">
+            <p className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-center text-sm text-destructive">
               Sign-in failed. Please try again.
             </p>
           ) : null}
 
-          <form action={signInWithGoogle}>
+          <form action={signInWithGoogle.bind(null, callbackUrl)}>
             <GoogleSignInButton />
           </form>
+
+          <Button variant="ghost" className="w-full" asChild>
+            <Link href="/">
+              <Home className="size-4" />
+              Go to Home
+            </Link>
+          </Button>
         </CardContent>
       </Card>
     </main>

@@ -38,13 +38,18 @@ export function Navbar({ isSignedIn = false }: NavbarProps) {
   return (
     <header
       className={cn(
-        "sticky top-0 z-40 transition-colors",
+        "sticky top-0 z-40 transition-[background-color,border-color,backdrop-filter,box-shadow] duration-300 ease-out",
         scrolled
-          ? "border-b border-border bg-background/90 backdrop-blur"
+          ? "border-b border-border bg-background/80 shadow-sm shadow-black/[0.03] backdrop-blur-md"
           : "border-b border-transparent bg-transparent",
       )}
     >
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
+      <div
+        className={cn(
+          "mx-auto flex max-w-7xl items-center justify-between px-4 transition-[padding] duration-300 ease-out sm:px-6 lg:px-8",
+          scrolled ? "py-3" : "py-4",
+        )}
+      >
         <Link
           href="/"
           className="flex items-center gap-2 font-semibold tracking-tight text-foreground"

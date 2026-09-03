@@ -46,8 +46,8 @@ export function DocumentsPanel({
   };
 
   return (
-    <Card className="flex h-full min-h-105 flex-col overflow-hidden border-border/80 bg-card/90">
-      <div className="flex items-center justify-between gap-3 border-b px-4 py-4">
+    <Card className="flex h-full min-h-0 flex-col overflow-hidden border-border/80 bg-card/90">
+      <div className="flex shrink-0 items-center justify-between gap-3 border-b px-4 py-4">
         <div>
           <p className="text-sm text-muted-foreground">Documents</p>
           <h3 className="text-lg font-semibold">Knowledge sources</h3>
@@ -57,7 +57,7 @@ export function DocumentsPanel({
           Upload
         </Button>
       </div>
-      <ScrollArea className="flex-1">
+      <ScrollArea className="min-h-0 flex-1">
         <div className="space-y-3 p-3">
           {documents.length ? (
             documents.map((document) => (

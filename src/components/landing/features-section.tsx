@@ -1,5 +1,7 @@
 import { FileCheck2, FolderLock, Link2, Radar } from "lucide-react";
 
+import { Reveal } from "@/components/landing/reveal";
+
 const features = [
   {
     title: "Grounded in your documents",
@@ -33,15 +35,17 @@ export function FeaturesSection() {
       id="features"
       className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24"
     >
-      <h2 className="max-w-xl text-3xl font-semibold tracking-[-0.02em] sm:text-4xl">
-        Built around one idea: an answer is only useful if you can trace it.
-      </h2>
+      <Reveal>
+        <h2 className="max-w-xl text-3xl font-semibold tracking-[-0.02em] sm:text-4xl">
+          Built around one idea: an answer is only useful if you can trace it.
+        </h2>
+      </Reveal>
 
       <div className="mt-10 grid gap-x-8 gap-y-10 sm:grid-cols-2">
-        {features.map((feature) => {
+        {features.map((feature, index) => {
           const Icon = feature.icon;
           return (
-            <div key={feature.title} className="flex gap-4">
+            <Reveal key={feature.title} delayMs={index * 100} className="flex gap-4">
               <Icon className="mt-0.5 size-5 shrink-0 text-foreground" />
               <div>
                 <h3 className="text-base font-medium">{feature.title}</h3>
@@ -49,7 +53,7 @@ export function FeaturesSection() {
                   {feature.description}
                 </p>
               </div>
-            </div>
+            </Reveal>
           );
         })}
       </div>

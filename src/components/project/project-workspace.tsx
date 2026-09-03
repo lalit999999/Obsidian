@@ -210,8 +210,8 @@ export function ProjectWorkspace({
   };
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[320px_minmax(0,1fr)_340px]">
-      <div className="hidden xl:block">
+    <div className="flex h-full min-h-0 flex-col gap-4 lg:flex-row">
+      <div className="hidden min-h-0 shrink-0 lg:block lg:w-80">
         <ChatSidebar
           chats={chats}
           activeChatId={activeChat?.id ?? null}
@@ -222,8 +222,8 @@ export function ProjectWorkspace({
         />
       </div>
 
-      <div className="flex flex-col gap-4">
-        <div className="flex items-center justify-between gap-3 rounded-3xl border bg-card/90 px-4 py-3 xl:hidden">
+      <div className="flex min-h-0 flex-1 flex-col gap-4">
+        <div className="flex shrink-0 items-center justify-between gap-3 rounded-3xl border bg-card/90 px-4 py-3 lg:hidden">
           <div>
             <p className="text-sm text-muted-foreground">Workspace panels</p>
             <p className="font-medium"></p>
@@ -240,7 +240,7 @@ export function ProjectWorkspace({
                 <SheetHeader>
                   <SheetTitle>Chats</SheetTitle>
                 </SheetHeader>
-                <div className="mt-4">
+                <div className="mt-4 h-[calc(100dvh-6rem)] min-h-0">
                   <ChatSidebar
                     chats={chats}
                     activeChatId={activeChat?.id ?? null}
@@ -266,7 +266,7 @@ export function ProjectWorkspace({
                 <SheetHeader>
                   <SheetTitle>Documents</SheetTitle>
                 </SheetHeader>
-                <div className="mt-4 h-[calc(100vh-6rem)]">
+                <div className="mt-4 h-[calc(100dvh-6rem)] min-h-0">
                   <DocumentsPanel
                     documents={documents}
                     onUploadDocument={uploadDocument}
@@ -279,27 +279,29 @@ export function ProjectWorkspace({
         </div>
 
         {messagesError ? (
-          <p className="text-sm text-destructive">{messagesError}</p>
+          <p className="shrink-0 text-sm text-destructive">{messagesError}</p>
         ) : null}
 
         {isLoadingMessages ? (
-          <Card className="flex h-full min-h-[calc(100vh-10rem)] flex-col items-center justify-center gap-3 border-border/80 bg-card/90 text-sm text-muted-foreground">
+          <Card className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 border-border/80 bg-card/90 text-sm text-muted-foreground">
             <Spinner className="size-6" />
             Loading conversation…
           </Card>
         ) : (
-          <ChatContainer
-            activeChat={activeChat}
-            messages={activeMessages}
-            key={activeChat?.id ?? "no-chat"}
-            onChatUpdated={handleChatTitleChange}
-            onOpenChats={() => setMobileChatsOpen(true)}
-            onOpenDocuments={() => setMobileDocsOpen(true)}
-          />
+          <div className="min-h-0 flex-1">
+            <ChatContainer
+              activeChat={activeChat}
+              messages={activeMessages}
+              key={activeChat?.id ?? "no-chat"}
+              onChatUpdated={handleChatTitleChange}
+              onOpenChats={() => setMobileChatsOpen(true)}
+              onOpenDocuments={() => setMobileDocsOpen(true)}
+            />
+          </div>
         )}
       </div>
 
-      <div className="hidden xl:block">
+      <div className="hidden min-h-0 shrink-0 lg:block lg:w-85">
         <DocumentsPanel
           documents={documents}
           onUploadDocument={uploadDocument}

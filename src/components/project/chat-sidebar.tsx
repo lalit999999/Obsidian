@@ -50,11 +50,8 @@ export function ChatSidebar({
   };
 
   return (
-    <aside
-      className="flex h-full flex-col rounded-3xl border bg-card/90"
-      style={{ minHeight: 420 }}
-    >
-      <div className="flex items-center justify-between border-b px-4 py-4">
+    <aside className="flex h-full min-h-0 flex-col rounded-3xl border bg-card/90">
+      <div className="flex shrink-0 items-center justify-between border-b px-4 py-4">
         <div>
           <p className="text-sm text-muted-foreground">Chats</p>
           <h3 className="text-lg font-semibold">Conversation list</h3>
@@ -64,7 +61,7 @@ export function ChatSidebar({
           {isCreating ? "Creating" : "New chat"}
         </Button>
       </div>
-      <ScrollArea className="flex-1">
+      <ScrollArea className="min-h-0 flex-1">
         <div className="space-y-2 p-3">
           {chats.length === 0 ? (
             <div className="rounded-2xl border border-dashed p-6 text-center text-sm text-muted-foreground">

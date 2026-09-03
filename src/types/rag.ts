@@ -1,39 +1,64 @@
-/**
- * Define all shared TypeScript types and interfaces used by the RAG pipeline.
- *
- * Include types for:
- *
- * 1. Document ingestion input:
- *    - documentId
- *    - projectId
- *    - userId
- *    - fileName
- *    - content
- *
- * 2. Parsed or generated text chunks:
- *    - content
- *    - chunkIndex
- *
- * 3. Qdrant payload:
- *    - userId
- *    - projectId
- *    - documentId
- *    - fileName
- *    - chunkIndex
- *    - content
- *
- * 4. Retrieval input:
- *    - query
- *    - projectId
- *    - userId
- *    - optional limit
- *
- * 5. Retrieved chunk result:
- *    - content
- *    - score
- *    - documentId
- *    - fileName
- *    - chunkIndex
- *
- * Keep this file focused only on shared RAG data structures.
- */
+export interface IngestionInput {
+  documentId: string;
+  projectId: string;
+  userId: string;
+  fileName: string;
+  content: string;
+}
+
+export interface TextChunk {
+  content: string;
+  chunkIndex: number;
+}
+
+export interface QdrantPayload {
+  userId: string;
+  projectId: string;
+  documentId: string;
+  fileName: string;
+  chunkIndex: number;
+  content: string;
+}
+
+export interface RetrievalInput {
+  query: string;
+  projectId: string;
+  userId: string;
+  limit?: number;
+}
+
+export interface RetrievedChunkResult {
+  content: string;
+  score: number;
+  documentId: string;
+  fileName: string;
+  chunkIndex: number;
+}
+
+export interface IngestionResult {
+  documentId: string;
+  projectId: string;
+  userId: string;
+  fileName: string;
+  chunkCount: number;
+}
+
+export interface StoreDocumentVectorsInput {
+  embeddings: number[][];
+  chunks: TextChunk[];
+  metadata: {
+    userId: string;
+    projectId: string;
+    documentId: string;
+    fileName: string;
+  };
+}
+
+export interface SearchSimilarChunksInput {
+  queryEmbedding: number[];
+  userId: string;
+  projectId: string;
+  limit?: number;
+}
+
+export type SupportedRagFileExtension = "txt" | "md";

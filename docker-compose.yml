@@ -1,4 +1,13 @@
-# Run a local Qdrant instance for the RAG pipeline.
-# Expose the REST API on port 6333 and gRPC on port 6334.
-# Use a persistent Docker volume so vectors survive container restarts.
-# This container is used only as the local vector database for development.
+services:
+  qdrant:
+    image: qdrant/qdrant:v1.14.1
+    container_name: obsidian-qdrant
+    restart: unless-stopped
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - qdrant_data:/qdrant/storage
+
+volumes:
+  qdrant_data:

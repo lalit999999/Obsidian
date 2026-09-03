@@ -20,11 +20,22 @@ export async function generateKnowledgeAnswer({
 }: KnowledgeAssistantInput): Promise<KnowledgeAssistantResult> {
   const messages = buildKnowledgeAssistantMessages({ question, context });
 
-  const response = await openaiClient.chat.completions.create({
-    model: process.env.OPENAI_CHAT_MODEL ?? "gpt-4o-mini",
-    messages,
-    temperature: 0.2,
-  });
+  let response;
+  try {
+    response = await openaiClient.chat.completions.create({
+      model: process.env.OPENAI_CHAT_MODEL ?? "gpt-4o-mini",
+      messages,
+      temperature: 0.2,
+    });
+  } catch (error) {
+    console.error(
+      "[openai] chat.completions.create failed:",
+      error instanceof Error && "error" in error
+        ? (error as { error: unknown }).error
+        : error,
+    );
+    throw error;
+  }
 
   const answer = response.choices[0]?.message?.content?.trim();
 

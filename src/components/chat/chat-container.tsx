@@ -65,18 +65,23 @@ export function ChatContainer({
         body: JSON.stringify({ content: trimmed }),
       });
 
-      const payload = (await response.json()) as
+      let payload:
         | SendMessageResponse
-        | { success: false; error?: { message?: string } };
+        | { success: false; error?: { message?: string } }
+        | null = null;
+
+      try {
+        payload = await response.json();
+      } catch {
+        throw new Error(
+          `Failed to send message (server returned ${response.status}).`,
+        );
+      }
 
       if (!response.ok || !payload.success) {
-        throw new Error(
-          !response.ok
-            ? payload && "error" in payload && payload.error?.message
-              ? payload.error.message
-              : "Failed to send message."
-            : "Failed to send message.",
-        );
+        const serverMessage =
+          payload && "error" in payload ? payload.error?.message : undefined;
+        throw new Error(serverMessage ?? "Failed to send message.");
       }
 
       setLocalMessages((current) => {

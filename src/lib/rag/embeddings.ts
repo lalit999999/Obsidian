@@ -8,7 +8,10 @@ import {
 export function getEmbeddingDimensions(
   modelName = RAG_EMBEDDING_MODEL,
 ): number {
-  const dimensions = RAG_EMBEDDING_DIMENSIONS[modelName];
+  const normalizedModelName = modelName.includes("/")
+    ? modelName.slice(modelName.lastIndexOf("/") + 1)
+    : modelName;
+  const dimensions = RAG_EMBEDDING_DIMENSIONS[normalizedModelName];
 
   if (!dimensions) {
     throw new Error(
@@ -66,6 +69,12 @@ export async function generateEmbeddings(texts: string[]): Promise<number[][]> {
         embeddings[i + j] = batchEmbeddings[j];
       }
     } catch (error) {
+      console.error(
+        "[openai] embeddings.create failed:",
+        error instanceof Error && "error" in error
+          ? (error as { error: unknown }).error
+          : error,
+      );
       const message =
         error instanceof Error
           ? error.message

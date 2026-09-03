@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 
 const apikey = process.env.OPENAI_API_KEY;
+const baseURL = process.env.OPENAI_BASE_URL || undefined;
 
 if (!apikey) {
   console.warn(
@@ -24,7 +25,7 @@ function createMissingApiKeyClient(): OpenAI {
 export const openaiClient = apikey
   ? new OpenAI({
       apiKey: apikey,
-      baseURL: "https://openrouter.ai/api/v1",
+      baseURL,
     })
   : createMissingApiKeyClient();
 

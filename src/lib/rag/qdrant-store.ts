@@ -1,3 +1,5 @@
+import crypto from "node:crypto";
+
 import { qdrantClient } from "@/lib/qdrant";
 import {
   RAG_COLLECTION_NAME,
@@ -11,11 +13,37 @@ import type {
   TextChunk,
 } from "@/types/rag";
 
+// Arbitrary, fixed namespace used to derive deterministic UUIDv5 point IDs
+// (Qdrant only accepts unsigned 64-bit integers or UUIDs as point IDs).
+const DOCUMENT_CHUNK_NAMESPACE = "a7be6514-3576-4d6c-b386-c448d7da7b06";
+
+function uuidv5(name: string, namespace: string): string {
+  const namespaceBytes = Buffer.from(namespace.replace(/-/g, ""), "hex");
+  const nameBytes = Buffer.from(name, "utf8");
+  const hash = crypto
+    .createHash("sha1")
+    .update(Buffer.concat([namespaceBytes, nameBytes]))
+    .digest();
+
+  const bytes = Buffer.from(hash.subarray(0, 16));
+  bytes[6] = (bytes[6] & 0x0f) | 0x50;
+  bytes[8] = (bytes[8] & 0x3f) | 0x80;
+
+  const hex = bytes.toString("hex");
+  return [
+    hex.slice(0, 8),
+    hex.slice(8, 12),
+    hex.slice(12, 16),
+    hex.slice(16, 20),
+    hex.slice(20),
+  ].join("-");
+}
+
 export function buildDocumentPointId(
   documentId: string,
   chunkIndex: number,
 ): string {
-  return `${documentId}:${chunkIndex}`;
+  return uuidv5(`${documentId}:${chunkIndex}`, DOCUMENT_CHUNK_NAMESPACE);
 }
 
 export async function storeDocumentVectors({
@@ -60,10 +88,15 @@ export async function storeDocumentVectors({
     };
   });
 
-  await qdrantClient.upsert(RAG_COLLECTION_NAME, {
-    wait: true,
-    points,
-  });
+  try {
+    await qdrantClient.upsert(RAG_COLLECTION_NAME, {
+      wait: true,
+      points,
+    });
+  } catch (error) {
+    console.error("[qdrant] upsert failed:", error);
+    throw error;
+  }
 }
 
 export async function searchSimilarChunks({
@@ -80,17 +113,23 @@ export async function searchSimilarChunks({
     throw new Error("userId and projectId are required for retrieval.");
   }
 
-  const response = await qdrantClient.query(RAG_COLLECTION_NAME, {
-    query: queryEmbedding,
-    limit,
-    with_payload: true,
-    filter: {
-      must: [
-        { key: "userId", match: { value: userId } },
-        { key: "projectId", match: { value: projectId } },
-      ],
-    },
-  });
+  let response;
+  try {
+    response = await qdrantClient.query(RAG_COLLECTION_NAME, {
+      query: queryEmbedding,
+      limit,
+      with_payload: true,
+      filter: {
+        must: [
+          { key: "userId", match: { value: userId } },
+          { key: "projectId", match: { value: projectId } },
+        ],
+      },
+    });
+  } catch (error) {
+    console.error("[qdrant] query failed:", error);
+    throw error;
+  }
 
   return response.points.map((point) => {
     const payload = point.payload as Record<string, unknown> | undefined;
@@ -112,10 +151,15 @@ export async function deleteDocumentVectors(documentId: string): Promise<void> {
     );
   }
 
-  await qdrantClient.delete(RAG_COLLECTION_NAME, {
-    filter: {
-      must: [{ key: "documentId", match: { value: documentId } }],
-    },
-    wait: true,
-  });
+  try {
+    await qdrantClient.delete(RAG_COLLECTION_NAME, {
+      filter: {
+        must: [{ key: "documentId", match: { value: documentId } }],
+      },
+      wait: true,
+    });
+  } catch (error) {
+    console.error("[qdrant] delete failed:", error);
+    throw error;
+  }
 }

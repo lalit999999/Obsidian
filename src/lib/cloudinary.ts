@@ -35,33 +35,34 @@ export async function uploadDocumentToCloudinary({
 
   const timestamp = Math.floor(Date.now() / 1000).toString();
   const folder = "obsidian/documents";
-  const payload = {
-    file: `data:${mimeType};charset=utf-8;base64,${Buffer.from(content, "utf8").toString("base64")}`,
-    public_id: `${folder}/${fileName.replace(/\.[^.]+$/, "")}-${crypto.randomUUID()}`,
-    resource_type: getResourceType(mimeType),
+  const resourceType = getResourceType(mimeType);
+  const publicId = `${folder}/${fileName.replace(/\.[^.]+$/, "")}-${crypto.randomUUID()}`;
+  const base64Content = Buffer.from(content, "utf8").toString("base64");
+  const dataUri = `data:${mimeType};base64,${base64Content}`;
+
+  const signedParams: Record<string, string> = {
+    public_id: publicId,
     timestamp,
   };
 
-  const signatureBase = Object.entries(payload)
-    .filter(([key]) => key !== "file")
-    .map(([key, value]) => `${key}=${value}`)
+  const signatureBase = Object.keys(signedParams)
     .sort()
+    .map((key) => `${key}=${signedParams[key]}`)
     .join("&");
   const signature = crypto
     .createHash("sha1")
     .update(`${signatureBase}${apiSecret}`)
     .digest("hex");
 
-  const body = new URLSearchParams();
-  body.set("file", payload.file);
-  body.set("public_id", payload.public_id);
-  body.set("resource_type", payload.resource_type);
-  body.set("timestamp", payload.timestamp);
+  const body = new FormData();
+  body.set("file", new Blob([dataUri], { type: "text/plain" }));
+  body.set("public_id", publicId);
+  body.set("timestamp", timestamp);
   body.set("api_key", apiKey);
   body.set("signature", signature);
 
   const response = await fetch(
-    `https://api.cloudinary.com/v1_1/${cloudName}/${payload.resource_type}/upload`,
+    `https://api.cloudinary.com/v1_1/${cloudName}/${resourceType}/upload`,
     {
       method: "POST",
       body,
@@ -70,6 +71,9 @@ export async function uploadDocumentToCloudinary({
 
   if (!response.ok) {
     const errorText = await response.text();
+    console.error(
+      `[cloudinary] upload failed (${response.status}): ${errorText}`,
+    );
     throw new Error(
       `Cloudinary upload failed: ${response.status} ${errorText}`,
     );
@@ -99,16 +103,14 @@ export async function deleteCloudinaryAsset(
 
   const timestamp = Math.floor(Date.now() / 1000).toString();
   const resourceType = "raw";
+  const signatureBase = `public_id=${publicId}&timestamp=${timestamp}`;
   const signature = crypto
     .createHash("sha1")
-    .update(
-      `public_id=${publicId}&resource_type=${resourceType}&timestamp=${timestamp}${apiSecret}`,
-    )
+    .update(`${signatureBase}${apiSecret}`)
     .digest("hex");
 
   const body = new URLSearchParams();
   body.set("public_id", publicId);
-  body.set("resource_type", resourceType);
   body.set("timestamp", timestamp);
   body.set("api_key", apiKey);
   body.set("signature", signature);
@@ -122,6 +124,10 @@ export async function deleteCloudinaryAsset(
   );
 
   if (!response.ok) {
+    const errorText = await response.text();
+    console.error(
+      `[cloudinary] delete failed (${response.status}): ${errorText}`,
+    );
     return false;
   }
 

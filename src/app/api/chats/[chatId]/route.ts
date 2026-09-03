@@ -1,30 +1,63 @@
-/**
- * SINGLE CHAT API
- *
- * GET /api/chats/[chatId]
- *
- * Responsibilities:
- * 1. Authenticate the user.
- * 2. Find the chat.
- * 3. Verify chat.userId belongs to the current user.
- * 4. Return chat metadata and messages.
- * 5. Order messages by createdAt ascending.
- *
- * PATCH /api/chats/[chatId]
- *
- * Responsibilities:
- * 1. Authenticate the user.
- * 2. Verify chat ownership.
- * 3. Validate title.
- * 4. Update the chat.
- *
- * DELETE /api/chats/[chatId]
- *
- * Responsibilities:
- * 1. Authenticate the user.
- * 2. Verify chat ownership.
- * 3. Delete the chat.
- *
- * Messages should be removed through the configured
- * database relation behavior.
- */
+import { NextRequest } from "next/server";
+
+import { deleteChatAction, renameChatAction } from "@/actions/chat/chat";
+import { requireCurrentUser } from "@/lib/auth";
+import { handleRouteError, jsonSuccess } from "@/lib/http";
+import { getOwnedChat } from "@/lib/ownership";
+import { prisma } from "@/lib/prisma";
+import { serializeChat, serializeMessage } from "@/lib/serializers";
+
+interface RouteParams {
+  params: Promise<{ chatId: string }>;
+}
+
+export async function GET(_: NextRequest, { params }: RouteParams) {
+  try {
+    const { chatId } = await params;
+    const currentUser = await requireCurrentUser();
+    const chat = await prisma.chat.findFirst({
+      where: { id: chatId, userId: currentUser.id },
+      include: {
+        _count: { select: { messages: true } },
+        messages: { orderBy: { createdAt: "asc" } },
+      },
+    });
+
+    if (!chat) {
+      return jsonSuccess({ chat: null }, { status: 404 });
+    }
+
+    return jsonSuccess({
+      chat: {
+        ...serializeChat(chat),
+        messages: chat.messages.map(serializeMessage),
+      },
+    });
+  } catch (error) {
+    return handleRouteError(error);
+  }
+}
+
+export async function PATCH(request: NextRequest, { params }: RouteParams) {
+  try {
+    const { chatId } = await params;
+    const body = await request.json();
+    const chat = await renameChatAction(chatId, body);
+
+    return jsonSuccess({
+      chat: serializeChat({ ...chat, _count: { messages: 0 } }),
+    });
+  } catch (error) {
+    return handleRouteError(error);
+  }
+}
+
+export async function DELETE(_: NextRequest, { params }: RouteParams) {
+  try {
+    const { chatId } = await params;
+    await deleteChatAction(chatId);
+    return jsonSuccess({ deleted: true });
+  } catch (error) {
+    return handleRouteError(error);
+  }
+}

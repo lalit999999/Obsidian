@@ -1,30 +1,46 @@
-/**
- * CHAT COLLECTION API
- *
- * GET /api/chats?projectId=...
- *
- * Responsibilities:
- * 1. Authenticate the user.
- * 2. Validate projectId from query parameters.
- * 3. Verify the project belongs to the current user.
- * 4. Return chats belonging to the project.
- * 5. Order chats by updatedAt descending.
- *
- * POST /api/chats
- *
- * Responsibilities:
- * 1. Authenticate the user.
- * 2. Validate request body.
- * 3. Required:
- *    - projectId
- * 4. Optional:
- *    - title
- * 5. Verify project ownership.
- * 6. Create a chat with:
- *    - projectId
- *    - userId from the authenticated user
- *    - default title when no title is provided
- * 7. Return the new chat.
- *
- * A chat must always belong to a project owned by the current user.
- */
+import { NextRequest } from "next/server";
+
+import { createChatAction } from "@/actions/chat/chat";
+import { requireCurrentUser } from "@/lib/auth";
+import { handleRouteError, jsonError, jsonSuccess } from "@/lib/http";
+import { getOwnedProject } from "@/lib/ownership";
+import { prisma } from "@/lib/prisma";
+import { parseCreateChatInput } from "@/lib/validations";
+import { serializeChat } from "@/lib/serializers";
+
+export async function GET(request: NextRequest) {
+  try {
+    const projectId = request.nextUrl.searchParams.get("projectId");
+
+    if (!projectId) {
+      return jsonError("projectId is required.", 400, "BAD_REQUEST");
+    }
+
+    const currentUser = await requireCurrentUser();
+    await getOwnedProject(projectId, currentUser.id);
+
+    const chats = await prisma.chat.findMany({
+      where: { projectId, userId: currentUser.id },
+      orderBy: { updatedAt: "desc" },
+      include: { _count: { select: { messages: true } } },
+    });
+
+    return jsonSuccess({ chats: chats.map(serializeChat) });
+  } catch (error) {
+    return handleRouteError(error);
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+    const chat = await createChatAction(body);
+
+    return jsonSuccess(
+      { chat: serializeChat({ ...chat, _count: { messages: 0 } }) },
+      { status: 201 },
+    );
+  } catch (error) {
+    return handleRouteError(error);
+  }
+}

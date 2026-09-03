@@ -1,47 +1,126 @@
-/**
- * PROJECT DOCUMENT API
- *
- * Implement document operations for a specific project.
- *
- * GET /api/projects/[projectId]/documents
- *
- * Responsibilities:
- * 1. Authenticate the user.
- * 2. Verify ownership of the project.
- * 3. Return documents belonging to this project.
- * 4. Order documents by createdAt descending.
- *
- * POST /api/projects/[projectId]/documents
- *
- * This endpoint connects the frontend upload flow with
- * the existing Part 2 RAG ingestion pipeline.
- *
- * Responsibilities:
- * 1. Authenticate the user.
- * 2. Verify project ownership.
- * 3. Read multipart form data.
- * 4. Validate the uploaded file.
- * 5. Allow only:
- *    - .md
- *    - .txt
- * 6. Call the existing ingestion pipeline.
- *
- * The ingestion pipeline is responsible for:
- * - Cloudinary upload
- * - Document database record
- * - Status updates
- * - Text extraction
- * - Chunking
- * - Embeddings
- * - Qdrant storage
- *
- * Do not duplicate RAG implementation here.
- * Reuse the existing ingest action/function from Part 2.
- *
- * Return useful document data including:
- * - id
- * - fileName
- * - status
- * - chunkCount
- * - error when applicable
- */
+import { NextRequest } from "next/server";
+
+import { requireCurrentUser } from "@/lib/auth";
+import { uploadDocumentToCloudinary } from "@/lib/cloudinary";
+import { handleRouteError, jsonError, jsonSuccess } from "@/lib/http";
+import { getOwnedProject } from "@/lib/ownership";
+import { prisma } from "@/lib/prisma";
+import { ingestDocument } from "@/actions/rag/ingest";
+import { serializeDocument } from "@/lib/serializers";
+import { validateSupportedDocumentFile } from "@/lib/validations";
+
+interface RouteParams {
+  params: Promise<{ projectId: string }>;
+}
+
+export async function GET(_: NextRequest, { params }: RouteParams) {
+  try {
+    const { projectId } = await params;
+    const currentUser = await requireCurrentUser();
+    await getOwnedProject(projectId, currentUser.id);
+
+    const documents = await prisma.document.findMany({
+      where: { projectId, userId: currentUser.id },
+      orderBy: { createdAt: "desc" },
+    });
+
+    return jsonSuccess({ documents: documents.map(serializeDocument) });
+  } catch (error) {
+    return handleRouteError(error);
+  }
+}
+
+export async function POST(request: NextRequest, { params }: RouteParams) {
+  try {
+    const { projectId } = await params;
+    const currentUser = await requireCurrentUser();
+    await getOwnedProject(projectId, currentUser.id);
+
+    const formData = await request.formData();
+    const file = formData.get("file");
+
+    if (!(file instanceof File)) {
+      return jsonError("A file upload is required.", 400, "BAD_REQUEST");
+    }
+
+    if (!validateSupportedDocumentFile(file.name)) {
+      return jsonError(
+        "Only .md and .txt files are supported.",
+        400,
+        "BAD_REQUEST",
+      );
+    }
+
+    const content = await file.text();
+    const fileSize = file.size;
+    const mimeType =
+      file.type || (file.name.endsWith(".md") ? "text/markdown" : "text/plain");
+
+    const document = await prisma.document.create({
+      data: {
+        projectId,
+        userId: currentUser.id,
+        fileName: file.name,
+        fileSize,
+        mimeType,
+        cloudinaryUrl: "",
+        cloudinaryPublicId: "",
+        status: "PROCESSING",
+      },
+    });
+
+    try {
+      const cloudinaryAsset = await uploadDocumentToCloudinary({
+        content,
+        fileName: file.name,
+        mimeType,
+      });
+
+      await prisma.document.update({
+        where: { id: document.id },
+        data: {
+          cloudinaryUrl: cloudinaryAsset.secureUrl,
+          cloudinaryPublicId: cloudinaryAsset.publicId,
+        },
+      });
+
+      const ingestResult = await ingestDocument({
+        documentId: document.id,
+        projectId,
+        userId: currentUser.id,
+        fileName: file.name,
+        content,
+      });
+
+      const updatedDocument = await prisma.document.update({
+        where: { id: document.id },
+        data: {
+          status: "READY",
+          chunkCount: ingestResult.chunkCount,
+          processedAt: new Date(),
+          error: null,
+        },
+      });
+
+      return jsonSuccess(
+        { document: serializeDocument(updatedDocument) },
+        { status: 201 },
+      );
+    } catch (error) {
+      await prisma.document.update({
+        where: { id: document.id },
+        data: {
+          status: "FAILED",
+          error:
+            error instanceof Error
+              ? error.message
+              : "Document processing failed.",
+        },
+      });
+
+      throw error;
+    }
+  } catch (error) {
+    return handleRouteError(error);
+  }
+}

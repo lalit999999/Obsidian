@@ -1,0 +1,4 @@
+# Run a local Qdrant instance for the RAG pipeline.
+# Expose the REST API on port 6333 and gRPC on port 6334.
+# Use a persistent Docker volume so vectors survive container restarts.
+# This container is used only as the local vector database for development.

@@ -1,4 +1,7 @@
-import { uploadDocumentToCloudinary } from "./src/lib/cloudinary";
+import {
+  uploadDocumentToCloudinary,
+  deleteCloudinaryAsset,
+} from "./src/lib/cloudinary";
 
 async function main() {
   const result = await uploadDocumentToCloudinary({
@@ -6,7 +9,10 @@ async function main() {
     fileName: "verify-upload.txt",
     mimeType: "text/plain",
   });
-  console.log(JSON.stringify(result, null, 2));
+  console.log("UPLOAD OK:", JSON.stringify(result, null, 2));
+
+  const deleted = await deleteCloudinaryAsset(result.publicId);
+  console.log("DELETE OK:", deleted);
 }
 
 main().catch((error) => {

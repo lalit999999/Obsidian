@@ -18,11 +18,13 @@ export function ProfileInformation({ user }: ProfileInformationProps) {
       <CardContent className="space-y-6">
         <div className="flex items-center gap-4">
           <Avatar className="size-16">
-            <AvatarImage src={user.image} alt={user.name} />
-            <AvatarFallback>{user.name.slice(0, 1)}</AvatarFallback>
+            <AvatarImage src={user.image ?? undefined} alt={user.name ?? user.email} />
+            <AvatarFallback>
+              {(user.name ?? user.email).slice(0, 1).toUpperCase()}
+            </AvatarFallback>
           </Avatar>
           <div>
-            <p className="text-xl font-semibold">{user.name}</p>
+            <p className="text-xl font-semibold">{user.name ?? "Unnamed"}</p>
             <p className="text-sm text-muted-foreground">
               Member since {new Date(user.createdAt).toLocaleDateString()}
             </p>
@@ -47,26 +49,7 @@ export function ProfileInformation({ user }: ProfileInformationProps) {
             </p>
           </div>
         </div>
-
-        <Badge variant="secondary" className="rounded-full">
-          Frontend-only profile
-        </Badge>
       </CardContent>
     </Card>
   );
 }
-// Display the user's basic profile information.
-//
-// Display:
-// - Avatar.
-// - Name.
-// - Email.
-// - Account creation date.
-//
-// Requirements:
-// - Use mock user data.
-// - Use shadcn Card.
-// - Use Avatar.
-//
-// Optional:
-// - Add an Edit Profile button as a frontend-only placeholder.

@@ -11,7 +11,9 @@ import { signOutAction } from "@/actions/auth/sign-out";
 import type { User } from "@/types";
 
 interface DashboardSidebarProps {
-  user: User;
+  user: Pick<User, "name" | "email" | "image">;
+  /** Render as a flex column regardless of viewport, for use inside a mobile Sheet. */
+  forceVisible?: boolean;
 }
 
 const navItems = [
@@ -19,11 +21,16 @@ const navItems = [
   { href: "/profile", label: "Profile", icon: UserRound },
 ];
 
-export function DashboardSidebar({ user }: DashboardSidebarProps) {
+export function DashboardSidebar({ user, forceVisible }: DashboardSidebarProps) {
   const pathname = usePathname();
 
   return (
-    <aside className="hidden h-screen w-72 shrink-0 flex-col border-r bg-sidebar/70 backdrop-blur xl:flex">
+    <aside
+      className={cn(
+        "h-screen w-72 shrink-0 flex-col border-r bg-sidebar/70 backdrop-blur",
+        forceVisible ? "flex" : "hidden xl:flex",
+      )}
+    >
       <div className="border-b px-5 py-5">
         <Link href="/dashboard" className="flex items-center gap-3">
           <span className="flex size-10 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
@@ -31,7 +38,7 @@ export function DashboardSidebar({ user }: DashboardSidebarProps) {
           </span>
           <div>
             <p className="font-semibold">Obsidian AI</p>
-            <p className="text-xs text-muted-foreground">Frontend MVP</p>
+            <p className="text-xs text-muted-foreground">Knowledge workspace</p>
           </div>
         </Link>
       </div>
@@ -60,11 +67,15 @@ export function DashboardSidebar({ user }: DashboardSidebarProps) {
       <div className="border-t p-4">
         <div className="flex items-center gap-3 rounded-3xl border bg-background p-3">
           <Avatar className="size-11">
-            <AvatarImage src={user.image} alt={user.name} />
-            <AvatarFallback>{user.name.slice(0, 1)}</AvatarFallback>
+            <AvatarImage src={user.image ?? undefined} alt={user.name ?? user.email} />
+            <AvatarFallback>
+              {(user.name ?? user.email).slice(0, 1).toUpperCase()}
+            </AvatarFallback>
           </Avatar>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium">{user.name}</p>
+            <p className="truncate text-sm font-medium">
+              {user.name ?? user.email}
+            </p>
             <p className="truncate text-xs text-muted-foreground">
               {user.email}
             </p>
@@ -84,26 +95,3 @@ export function DashboardSidebar({ user }: DashboardSidebarProps) {
     </aside>
   );
 }
-// Create the dashboard navigation sidebar.
-//
-// Navigation items:
-// - Dashboard
-// - Profile
-//
-// Include:
-// - Application logo/name.
-// - Navigation links with icons.
-// - User profile preview near the bottom.
-// - Logout button as a frontend-only visual action.
-//
-// Requirements:
-// - Highlight the active route.
-// - Make the sidebar responsive.
-// - On mobile, it can collapse or use a Sheet component.
-//
-// Use shadcn/ui components where appropriate.
-// Use Lucide icons.
-//
-// Design:
-// - Neutral sidebar.
-// - Pink accent for the active item.

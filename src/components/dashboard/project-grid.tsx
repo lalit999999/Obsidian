@@ -10,15 +10,17 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { useOpenCreateProjectDialog } from "@/components/dashboard/dashboard-shell";
 import type { Project } from "@/types";
 import { ProjectCard } from "./project-card";
 
 interface ProjectGridProps {
   projects: Project[];
-  onCreateProject: () => void;
 }
 
-export function ProjectGrid({ projects, onCreateProject }: ProjectGridProps) {
+export function ProjectGrid({ projects }: ProjectGridProps) {
+  const openCreateDialog = useOpenCreateProjectDialog();
+
   if (projects.length === 0) {
     return (
       <Card className="border-dashed border-border/80 bg-card/70">
@@ -30,7 +32,7 @@ export function ProjectGrid({ projects, onCreateProject }: ProjectGridProps) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Button onClick={onCreateProject}>
+          <Button onClick={openCreateDialog}>
             <FolderPlus className="size-4" />
             Create your first project
           </Button>
@@ -47,19 +49,3 @@ export function ProjectGrid({ projects, onCreateProject }: ProjectGridProps) {
     </section>
   );
 }
-// Render the user's projects.
-//
-// Props:
-// - projects array.
-// - Optional callback for project interactions.
-//
-// Requirements:
-// - Render ProjectCard for every project.
-// - Use a responsive grid.
-// - Show an empty state when there are no projects.
-//
-// Empty state:
-// - Explain that the user has no projects yet.
-// - Provide a button to create the first project.
-//
-// Use shadcn components for the empty state.

@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { ProjectStatistics, User } from "@/types";
 
 interface WelcomeSectionProps {
-  user: User;
+  user: Pick<User, "name" | "email">;
   statistics: ProjectStatistics;
 }
 
@@ -19,7 +19,9 @@ export function WelcomeSection({ user, statistics }: WelcomeSectionProps) {
     <section className="space-y-4">
       <div>
         <p className="text-sm text-muted-foreground">Welcome back,</p>
-        <h2 className="text-2xl font-semibold tracking-tight">{user.name}</h2>
+        <h2 className="text-2xl font-semibold tracking-tight">
+          {user.name ?? user.email}
+        </h2>
       </div>
       <div className="grid gap-4 md:grid-cols-3">
         {stats.map((stat) => {
@@ -46,22 +48,3 @@ export function WelcomeSection({ user, statistics }: WelcomeSectionProps) {
     </section>
   );
 }
-// Create a welcome section for the dashboard.
-//
-// Include:
-// - Greeting using mock user data.
-// - Short explanation of the dashboard.
-// - Project statistics using mock data.
-//
-// Example statistics:
-// - Total Projects.
-// - Total Documents.
-// - Total Chats.
-//
-// Requirements:
-// - Use shadcn Card components.
-// - Use a responsive grid.
-// - Use icons where appropriate.
-//
-// Important:
-// All values come from mock data or derived frontend state.

@@ -66,6 +66,11 @@ export function ChatSidebar({
       </div>
       <ScrollArea className="flex-1">
         <div className="space-y-2 p-3">
+          {chats.length === 0 ? (
+            <div className="rounded-2xl border border-dashed p-6 text-center text-sm text-muted-foreground">
+              No chats yet. Start one to ask about your documents.
+            </div>
+          ) : null}
           {chats.map((chat) => {
             const active = chat.id === activeChatId;
 
@@ -132,29 +137,3 @@ export function ChatSidebar({
     </aside>
   );
 }
-// Create the chat history sidebar.
-//
-// Include:
-// - "New Chat" button.
-// - List of chats.
-// - Active chat indicator.
-// - Optional chat actions menu.
-//
-// Each chat item should display:
-// - Title.
-// - Last updated information if available.
-//
-// Behavior:
-// - Clicking a chat changes the active chat.
-// - New Chat creates a new mock chat in local state.
-// - The newly created chat becomes active.
-//
-// Use:
-// - shadcn Button.
-// - shadcn ScrollArea.
-// - shadcn DropdownMenu.
-// - shadcn Tooltip if useful.
-//
-// Design:
-// - Compact and easy to scan.
-// - Pink accent for the active chat.

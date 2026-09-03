@@ -2,7 +2,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import type { User } from "@/types";
 
 interface ProfileHeaderProps {
-  user: User;
+  user: Pick<User, "name" | "email" | "image">;
 }
 
 export function ProfileHeader({ user }: ProfileHeaderProps) {
@@ -16,28 +16,21 @@ export function ProfileHeader({ user }: ProfileHeaderProps) {
           Account details
         </h1>
         <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-          Review your basic account info and make frontend-only edits for the
-          MVP.
+          Review your account info and connected sign-in details.
         </p>
       </div>
       <div className="flex items-center gap-3 rounded-3xl border bg-card px-4 py-3">
         <Avatar>
-          <AvatarImage src={user.image} alt={user.name} />
-          <AvatarFallback>{user.name.slice(0, 1)}</AvatarFallback>
+          <AvatarImage src={user.image ?? undefined} alt={user.name ?? user.email} />
+          <AvatarFallback>
+            {(user.name ?? user.email).slice(0, 1).toUpperCase()}
+          </AvatarFallback>
         </Avatar>
         <div>
-          <p className="text-sm font-medium">{user.name}</p>
+          <p className="text-sm font-medium">{user.name ?? user.email}</p>
           <p className="text-xs text-muted-foreground">{user.email}</p>
         </div>
       </div>
     </header>
   );
 }
-// Create the profile page header.
-//
-// Include:
-// - Page title: Profile.
-// - Short description.
-// - Optional user avatar.
-//
-// Keep the component simple and reusable.

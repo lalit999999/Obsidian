@@ -13,8 +13,7 @@ interface AccountSettingsProps {
 }
 
 export function AccountSettings({ user }: AccountSettingsProps) {
-  const [name, setName] = useState(user.name);
-  const [email, setEmail] = useState(user.email);
+  const [name, setName] = useState(user.name ?? "");
 
   return (
     <Card className="border-border/80 bg-card/90">
@@ -33,31 +32,16 @@ export function AccountSettings({ user }: AccountSettingsProps) {
           </div>
           <div className="space-y-2">
             <Label htmlFor="profile-email">Email</Label>
-            <Input
-              id="profile-email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-            />
+            <Input id="profile-email" value={user.email} disabled readOnly />
+            <p className="text-xs text-muted-foreground">
+              Managed by your Google account.
+            </p>
           </div>
-          <Button type="button">Save changes</Button>
+          <Button type="button" disabled title="Profile editing isn't available yet">
+            Save changes
+          </Button>
         </form>
       </CardContent>
     </Card>
   );
 }
-// Create a simple account settings card.
-//
-// Possible UI:
-// - Name input.
-// - Email input (disabled or editable visually).
-// - Save Changes button.
-//
-// Important:
-// - Do not persist data to a backend.
-// - If implementing interaction, update local frontend state only.
-//
-// Use:
-// - shadcn Card.
-// - Input.
-// - Label.
-// - Button.

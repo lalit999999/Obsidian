@@ -6,17 +6,14 @@ import { Upload } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import type { Document, DocumentStatus } from "@/types";
+import type { Document } from "@/types";
 import { DocumentItem } from "./document-item";
 import { UploadDocumentDialog } from "./upload-document-dialog";
 
 interface DocumentsPanelProps {
   documents: Document[];
-  onUploadDocument: (
-    document: Omit<Document, "id" | "createdAt" | "projectId" | "userId">,
-    fileName: string,
-  ) => void;
-  onDeleteDocument: (documentId: string) => void;
+  onUploadDocument: (file: File) => Promise<void> | void;
+  onDeleteDocument: (documentId: string) => Promise<void> | void;
 }
 
 export function DocumentsPanel({
@@ -25,6 +22,28 @@ export function DocumentsPanel({
   onDeleteDocument,
 }: DocumentsPanelProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleUpload = async (file: File) => {
+    if (isUploading) {
+      return;
+    }
+
+    setIsUploading(true);
+    setError(null);
+
+    try {
+      await onUploadDocument(file);
+      setDialogOpen(false);
+    } catch (uploadError) {
+      setError(
+        uploadError instanceof Error ? uploadError.message : "Upload failed.",
+      );
+    } finally {
+      setIsUploading(false);
+    }
+  };
 
   return (
     <Card className="flex h-full min-h-[420px] flex-col overflow-hidden border-border/80 bg-card/90">
@@ -60,52 +79,10 @@ export function DocumentsPanel({
       <UploadDocumentDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
-        onUpload={(file) => {
-          onUploadDocument(
-            {
-              fileSize: file.size,
-              fileName: file.name,
-              mimeType:
-                file.type ||
-                (file.name.endsWith(".md") ? "text/markdown" : "text/plain"),
-              status: "PROCESSING" as DocumentStatus,
-              error: null,
-              chunkCount: 0,
-            },
-            file.name,
-          );
-        }}
+        isSubmitting={isUploading}
+        error={error}
+        onUpload={handleUpload}
       />
     </Card>
   );
 }
-// Create the documents management panel.
-//
-// Include:
-// - Panel heading.
-// - Upload Document button.
-// - Documents list.
-// - UploadDocumentDialog.
-//
-// Supported frontend MVP file types:
-// - .md
-// - .txt
-//
-// Display:
-// - File name.
-// - File size.
-// - Processing status.
-// - Optional actions.
-//
-// Statuses:
-// - PENDING
-// - PROCESSING
-// - READY
-// - FAILED
-//
-// Important:
-// - Do not upload files to a real service.
-// - Use local state to simulate adding documents.
-// - A selected file can be represented in the UI only.
-//
-// Use shadcn ScrollArea and other shadcn components.

@@ -1,20 +1,20 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import type { Chat, Message } from "@/types";
-import { ChatEmptyState } from "./chat-empty-state";
+import type { Chat } from "@/types";
+import type { ChatMessage, SendMessageResponse } from "@/types/chat";
+import { ChatMessages } from "./chat-messages";
 import { ChatInput } from "./chat-input";
-import { ChatLoading } from "./chat-loading";
-import { ChatMessage } from "./chat-message";
 
 interface ChatContainerProps {
   activeChat?: Chat;
-  messages: Message[];
-  isLoading: boolean;
-  onSendMessage: (message: string) => void;
+  messages: ChatMessage[];
+  projectId: string;
+  onSendMessage?: (message: string) => void;
+  onChatUpdated?: (chatId: string, title: string) => void;
   onPromptSelect: (prompt: string) => void;
   onOpenChats?: () => void;
   onOpenDocuments?: () => void;
@@ -23,19 +23,96 @@ interface ChatContainerProps {
 export function ChatContainer({
   activeChat,
   messages,
-  isLoading,
+  projectId,
   onSendMessage,
+  onChatUpdated,
   onPromptSelect,
   onOpenChats,
   onOpenDocuments,
 }: ChatContainerProps) {
-  const endRef = useRef<HTMLDivElement | null>(null);
+  const [localMessages, setLocalMessages] = useState(messages);
+  const [isSending, setIsSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
-  }, [messages, isLoading]);
+    setLocalMessages(messages);
+  }, [messages, activeChat?.id]);
 
-  const showEmptyState = !activeChat || messages.length === 0;
+  const sendMessage = async (content: string) => {
+    if (!activeChat || isSending) {
+      return;
+    }
+
+    const trimmed = content.trim();
+    if (!trimmed) {
+      return;
+    }
+
+    setIsSending(true);
+    setError(null);
+
+    const temporaryUserMessage: ChatMessage = {
+      id: `temp-${Date.now()}`,
+      chatId: activeChat.id,
+      role: "USER",
+      content: trimmed,
+      createdAt: new Date().toISOString(),
+    };
+
+    setLocalMessages((current) => [...current, temporaryUserMessage]);
+
+    try {
+      const response = await fetch(`/api/chats/${activeChat.id}/messages`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ content: trimmed }),
+      });
+
+      const payload = (await response.json()) as
+        | SendMessageResponse
+        | { success: false; error?: { message?: string } };
+
+      if (!response.ok || !payload.success) {
+        throw new Error(
+          !response.ok
+            ? payload && "error" in payload && payload.error?.message
+              ? payload.error.message
+              : "Failed to send message."
+            : "Failed to send message.",
+        );
+      }
+
+      setLocalMessages((current) => {
+        const withoutTemp = current.filter(
+          (message) => message.id !== temporaryUserMessage.id,
+        );
+        return [
+          ...withoutTemp,
+          payload.data.userMessage,
+          payload.data.assistantMessage,
+        ];
+      });
+
+      if (activeChat.title === "New chat") {
+        onChatUpdated?.(activeChat.id, trimmed.slice(0, 120));
+      }
+
+      onSendMessage?.(trimmed);
+    } catch (error) {
+      setError(
+        error instanceof Error ? error.message : "Something went wrong.",
+      );
+      setLocalMessages((current) =>
+        current.filter((message) => message.id !== temporaryUserMessage.id),
+      );
+    } finally {
+      setIsSending(false);
+    }
+  };
+
+  const showEmptyState = !activeChat || localMessages.length === 0;
 
   return (
     <Card className="flex h-full min-h-[calc(100vh-10rem)] flex-col overflow-hidden border-border/80 bg-card/90">
@@ -64,71 +141,24 @@ export function ChatContainer({
         {showEmptyState ? (
           <ChatEmptyState onSelectPrompt={onPromptSelect} />
         ) : (
-          <div className="space-y-4">
-            {messages.map((message) => (
-              <ChatMessage
-                key={message.id}
-                role={message.role}
-                content={message.content}
-                createdAt={message.createdAt}
-                sources={message.sources}
-              />
-            ))}
-            {isLoading ? <ChatLoading /> : null}
-            <div ref={endRef} />
-          </div>
+          <ChatMessages
+            messages={localMessages}
+            isLoading={isSending}
+            onPromptSelect={onPromptSelect}
+          />
         )}
       </div>
 
-      <ChatInput onSendMessage={onSendMessage} isLoading={isLoading} />
+      {error ? (
+        <div className="border-t px-4 pt-3 text-sm text-destructive">
+          {error}
+        </div>
+      ) : null}
+      <ChatInput
+        onSendMessage={sendMessage}
+        isLoading={isSending}
+        error={error}
+      />
     </Card>
   );
 }
-/**
- * CHAT CONTAINER
- *
- * This is the main client-side chat controller.
- *
- * Responsibilities:
- *
- * - Receive projectId and active chat information.
- * - Manage optimistic/local message state.
- * - Manage sending state.
- * - Call the AI message API.
- * - Display loading state while the AI responds.
- * - Handle API errors.
- * - Update messages after successful responses.
- *
- * Important state:
- *
- * messages
- * isSending
- * error
- *
- * Send flow:
- *
- * User submits
- *      ↓
- * Add temporary user message to UI
- *      ↓
- * Clear input
- *      ↓
- * Set isSending = true
- *      ↓
- * POST to message API
- *      ↓
- * Receive assistant response
- *      ↓
- * Add persisted response to UI
- *      ↓
- * Set isSending = false
- *
- * Prevent duplicate sends while a request is active.
- *
- * Compose:
- * - ChatMessages
- * - ChatLoading
- * - ChatInput
- *
- * Handle the case where no chat is currently selected.
- */

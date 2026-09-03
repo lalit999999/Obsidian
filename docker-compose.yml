@@ -1,4 +1,17 @@
 services:
+  postgres:
+    image: postgres:17
+    container_name: obsidian-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: obsidian
+      POSTGRES_PASSWORD: obsidian
+      POSTGRES_DB: obsidian
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
   qdrant:
     image: qdrant/qdrant:v1.14.1
     container_name: obsidian-qdrant
@@ -10,4 +23,5 @@ services:
       - qdrant_data:/qdrant/storage
 
 volumes:
+  postgres_data:
   qdrant_data:

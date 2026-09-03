@@ -45,7 +45,7 @@ export function ChatInput({
           }
         }}
         placeholder="Ask anything about your documents…"
-        className="min-h-[110px] resize-none rounded-3xl"
+        className="min-h-27.5 resize-none rounded-3xl"
       />
       {error ? <p className="text-sm text-destructive">{error}</p> : null}
       <div className="flex items-center justify-between gap-3">

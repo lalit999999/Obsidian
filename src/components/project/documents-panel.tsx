@@ -46,7 +46,7 @@ export function DocumentsPanel({
   };
 
   return (
-    <Card className="flex h-full min-h-[420px] flex-col overflow-hidden border-border/80 bg-card/90">
+    <Card className="flex h-full min-h-105 flex-col overflow-hidden border-border/80 bg-card/90">
       <div className="flex items-center justify-between gap-3 border-b px-4 py-4">
         <div>
           <p className="text-sm text-muted-foreground">Documents</p>

@@ -174,7 +174,6 @@ export function ProjectWorkspace({
           <div>
             <p className="text-sm text-muted-foreground">Workspace panels</p>
             <p className="font-medium">
-              Mobile uses sheets for chats and documents
             </p>
           </div>
           <div className="flex items-center gap-2">
@@ -246,4 +245,4 @@ export function ProjectWorkspace({
       </div>
     </div>
   );
- */
+}

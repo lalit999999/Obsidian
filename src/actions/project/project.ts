@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { requireCurrentUser } from "@/lib/auth";
-import { AuthenticationError, NotFoundError } from "@/lib/errors";
+import { NotFoundError } from "@/lib/errors";
 import { prisma } from "@/lib/prisma";
 import {
   parseCreateProjectInput,

@@ -76,25 +76,7 @@ export function ChatMessage({
             </Avatar>
           ) : null}
         </div>
- */
-
-
-/**
- * CHAT MESSAGE
- *
- * Render a single USER or ASSISTANT message.
- *
- * Responsibilities:
- *
- * - Visually distinguish USER and ASSISTANT roles.
- * - Render message content safely.
- * - Display assistant source metadata when available.
- * - Show source file names in a compact UI.
- *
- * For MVP:
- * - Keep source display simple.
- * - Do not expose raw Qdrant payloads.
- *
- * If markdown rendering is used, ensure user content is
- * handled safely.
- */
+      </div>
+    </div>
+  );
+}

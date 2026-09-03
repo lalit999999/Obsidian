@@ -50,7 +50,7 @@ export function ChatSidebar({
   };
 
   return (
-    <aside className="flex h-full min-h-[420px] flex-col rounded-3xl border bg-card/90">
+    <aside className="flex h-full min-h-105 flex-col rounded-3xl border bg-card/90">
       <div className="flex items-center justify-between border-b px-4 py-4">
         <div>
           <p className="text-sm text-muted-foreground">Chats</p>

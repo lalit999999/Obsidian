@@ -40,6 +40,8 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -71,7 +73,7 @@
   --chart-3: oklch(0.439 0 0);
   --chart-4: oklch(0.371 0 0);
   --chart-5: oklch(0.269 0 0);
-  --radius: 0.875rem;
+  --radius: 0.75rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.586 0.253 17.585);
@@ -82,6 +84,8 @@
   --sidebar-ring: oklch(0.708 0 0);
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
+  --success: oklch(0.6 0.14 152);
+  --success-foreground: oklch(0.98 0.02 152);
 }
 
 .dark {
@@ -116,6 +120,8 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+  --success: oklch(0.72 0.16 152);
+  --success-foreground: oklch(0.16 0.03 152);
 }
 
 @layer base {
@@ -125,8 +131,6 @@
 
   body {
     @apply bg-background text-foreground;
-    background-image: radial-gradient(circle at top left, rgb(244 114 182 / 0.08), transparent 28%),
-      radial-gradient(circle at top right, rgb(251 146 60 / 0.04), transparent 24%);
   }
 
   button:not(:disabled),
@@ -138,23 +142,3 @@
     @apply scroll-smooth font-sans;
   }
 }
-
-/*
-TODO:
-Configure the global application styles.
-
-Requirements:
-- Include Tailwind base, components, and utilities.
-- Configure CSS variables compatible with shadcn/ui.
-- Create a modern pink-based theme.
-- Use pink/rose tones as the primary accent color.
-- Support light mode.
-- Add dark mode variables if the existing shadcn setup supports them.
-- Keep backgrounds clean and mostly neutral so pink remains an accent.
-
-Important:
-- Do not create custom UI components here.
-- The application should primarily use shadcn/ui components.
-- Ensure buttons, borders, rings, cards, muted colors, and sidebar colors
-  work consistently with the pink theme.
-*/

@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Geist_Mono, Public_Sans, DM_Sans } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
+import { ThemeProvider } from "@/components/layout/theme-provider";
+import { Toaster } from "@/components/ui/sonner";
 
 const dmSans = DM_Sans({subsets:['latin'],variable:'--font-sans'});
 
@@ -27,6 +29,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       className={cn(
         "h-full",
         "antialiased",
@@ -36,7 +39,15 @@ export default function RootLayout({
       )}
     >
       <body className="min-h-screen bg-background text-foreground">
-        {children}
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="dark"
+          enableSystem={false}
+          disableTransitionOnChange
+        >
+          {children}
+          <Toaster />
+        </ThemeProvider>
       </body>
     </html>
   );

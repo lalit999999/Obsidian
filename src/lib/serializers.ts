@@ -1,4 +1,5 @@
 import type { ChatMessageSource } from "@/types/chat";
+import type { DocumentStatus, MessageRole } from "@/types";
 
 export function toIsoString(value: Date | string): string {
   return value instanceof Date
@@ -56,7 +57,7 @@ export function serializeDocument(document: {
   mimeType: string;
   cloudinaryUrl: string;
   cloudinaryPublicId: string;
-  status: string;
+  status: DocumentStatus;
   error: string | null;
   chunkCount: number;
   createdAt: Date;

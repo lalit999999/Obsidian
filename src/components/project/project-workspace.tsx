@@ -12,50 +12,94 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import type { Chat, Document, Message, Project, User } from "@/types";
+import { Spinner } from "@/components/ui/spinner";
+import type { Chat, Document, Message, Project } from "@/types";
 import { ChatContainer } from "@/components/chat/chat-container";
 import { ChatSidebar } from "./chat-sidebar";
 import { DocumentsPanel } from "./documents-panel";
 
 interface ProjectWorkspaceProps {
   project: Project;
-  user: User;
   initialChats: Chat[];
-  initialMessages: Message[];
   initialDocuments: Document[];
+  initialActiveChatId: string | null;
+  initialMessages: Message[];
 }
 
 export function ProjectWorkspace({
   project,
-  user,
   initialChats,
-  initialMessages,
   initialDocuments,
+  initialActiveChatId,
+  initialMessages,
 }: ProjectWorkspaceProps) {
   const [chats, setChats] = useState(initialChats);
   const [documents, setDocuments] = useState(initialDocuments);
   const [activeChatId, setActiveChatId] = useState<string | null>(
-    initialChats[0]?.id ?? null,
+    initialActiveChatId,
   );
+  const [messagesByChatId, setMessagesByChatId] = useState<
+    Record<string, Message[]>
+  >(initialActiveChatId ? { [initialActiveChatId]: initialMessages } : {});
+  const [isLoadingMessages, setIsLoadingMessages] = useState(false);
+  const [messagesError, setMessagesError] = useState<string | null>(null);
   const [mobileChatsOpen, setMobileChatsOpen] = useState(false);
   const [mobileDocsOpen, setMobileDocsOpen] = useState(false);
 
   useEffect(() => {
     setChats(initialChats);
     setDocuments(initialDocuments);
-    setActiveChatId(initialChats[0]?.id ?? null);
-  }, [initialChats, initialDocuments, initialMessages, project.id]);
+    setActiveChatId(initialActiveChatId);
+    setMessagesByChatId(
+      initialActiveChatId ? { [initialActiveChatId]: initialMessages } : {},
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [project.id]);
 
   const activeChat = useMemo(
-    () => chats.find((chat) => chat.id === activeChatId) ?? chats[0],
+    () => chats.find((chat) => chat.id === activeChatId),
     [activeChatId, chats],
   );
 
-  const activeMessages = useMemo(
-    () =>
-      initialMessages.filter((message) => message.chatId === activeChat?.id),
-    [activeChat?.id, initialMessages],
-  );
+  const activeMessages = activeChatId
+    ? (messagesByChatId[activeChatId] ?? [])
+    : [];
+
+  const loadMessages = async (chatId: string) => {
+    if (messagesByChatId[chatId]) {
+      return;
+    }
+
+    setIsLoadingMessages(true);
+    setMessagesError(null);
+
+    try {
+      const response = await fetch(`/api/chats/${chatId}`);
+      const payload = await response.json();
+
+      if (!response.ok || !payload.success) {
+        throw new Error(
+          payload?.error?.message ?? "Failed to load messages.",
+        );
+      }
+
+      setMessagesByChatId((current) => ({
+        ...current,
+        [chatId]: payload.data.chat.messages as Message[],
+      }));
+    } catch (error) {
+      setMessagesError(
+        error instanceof Error ? error.message : "Failed to load messages.",
+      );
+    } finally {
+      setIsLoadingMessages(false);
+    }
+  };
+
+  const selectChat = (chatId: string) => {
+    setActiveChatId(chatId);
+    void loadMessages(chatId);
+  };
 
   const createChat = async () => {
     const response = await fetch("/api/chats", {
@@ -71,6 +115,7 @@ export function ProjectWorkspace({
 
     const newChat = payload.data.chat as Chat;
     setChats((current) => [newChat, ...current]);
+    setMessagesByChatId((current) => ({ ...current, [newChat.id]: [] }));
     setActiveChatId(newChat.id);
   };
 
@@ -110,6 +155,11 @@ export function ProjectWorkspace({
     }
 
     setChats((current) => current.filter((chat) => chat.id !== chatId));
+    setMessagesByChatId((current) => {
+      const next = { ...current };
+      delete next[chatId];
+      return next;
+    });
     setActiveChatId((current) => (current === chatId ? null : current));
   };
 
@@ -165,7 +215,7 @@ export function ProjectWorkspace({
         <ChatSidebar
           chats={chats}
           activeChatId={activeChat?.id ?? null}
-          onSelectChat={setActiveChatId}
+          onSelectChat={selectChat}
           onCreateChat={createChat}
           onRenameChat={renameChat}
           onDeleteChat={deleteChat}
@@ -195,7 +245,7 @@ export function ProjectWorkspace({
                     chats={chats}
                     activeChatId={activeChat?.id ?? null}
                     onSelectChat={(chatId) => {
-                      setActiveChatId(chatId);
+                      selectChat(chatId);
                       setMobileChatsOpen(false);
                     }}
                     onCreateChat={createChat}
@@ -228,14 +278,25 @@ export function ProjectWorkspace({
           </div>
         </div>
 
-        <ChatContainer
-          activeChat={activeChat}
-          messages={activeMessages}
-          key={activeChat?.id ?? "no-chat"}
-          onChatUpdated={handleChatTitleChange}
-          onOpenChats={() => setMobileChatsOpen(true)}
-          onOpenDocuments={() => setMobileDocsOpen(true)}
-        />
+        {messagesError ? (
+          <p className="text-sm text-destructive">{messagesError}</p>
+        ) : null}
+
+        {isLoadingMessages ? (
+          <Card className="flex h-full min-h-[calc(100vh-10rem)] flex-col items-center justify-center gap-3 border-border/80 bg-card/90 text-sm text-muted-foreground">
+            <Spinner className="size-6" />
+            Loading conversation…
+          </Card>
+        ) : (
+          <ChatContainer
+            activeChat={activeChat}
+            messages={activeMessages}
+            key={activeChat?.id ?? "no-chat"}
+            onChatUpdated={handleChatTitleChange}
+            onOpenChats={() => setMobileChatsOpen(true)}
+            onOpenDocuments={() => setMobileDocsOpen(true)}
+          />
+        )}
       </div>
 
       <div className="hidden xl:block">

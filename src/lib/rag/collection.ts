@@ -1,8 +1,5 @@
 import { qdrantClient } from "@/lib/qdrant";
-import {
-  RAG_COLLECTION_NAME,
-  RAG_EMBEDDING_MODEL,
-} from "@/lib/rag/constants";
+import { RAG_COLLECTION_NAME, RAG_EMBEDDING_MODEL } from "@/lib/rag/constants";
 import { getEmbeddingDimensions } from "@/lib/rag/embeddings";
 
 export async function ensureKnowledgeBaseCollection(): Promise<void> {

@@ -1,42 +1,37 @@
-/**
- * Orchestrate the RAG retrieval pipeline.
- *
- * Input:
- * - user query
- * - userId
- * - projectId
- * - optional result limit
- *
- * Pipeline:
- *
- * user question
- *      ↓
- * validate query
- *      ↓
- * generate query embedding
- *      ↓
- * search Qdrant
- *      ↓
- * filter by userId and projectId
- *      ↓
- * return top relevant chunks
- *
- * The default MVP retrieval limit is 5.
- *
- * Return structured results containing:
- * - content
- * - similarity score
- * - documentId
- * - fileName
- * - chunkIndex
- *
- * This module only retrieves knowledge.
- *
- * It does NOT:
- * - generate an AI answer
- * - build an AI prompt
- * - manage chats
- * - store messages
- *
- * Part 3 will call this function and use the returned chunks as AI context.
- */
+import { RAG_DEFAULT_RETRIEVAL_LIMIT } from "@/lib/rag/constants";
+import { generateEmbeddings } from "@/lib/rag/embeddings";
+import { searchSimilarChunks } from "@/lib/rag/qdrant-store";
+import type { RetrievedChunkResult, RetrievalInput } from "@/types/rag";
+
+export async function retrieveRelevantChunks({
+  query,
+  userId,
+  projectId,
+  limit = RAG_DEFAULT_RETRIEVAL_LIMIT,
+}: RetrievalInput): Promise<RetrievedChunkResult[]> {
+  if (typeof query !== "string") {
+    throw new Error("Query must be a string.");
+  }
+
+  const trimmedQuery = query.trim();
+  if (!trimmedQuery) {
+    throw new Error("Query cannot be empty.");
+  }
+
+  if (!userId || typeof userId !== "string") {
+    throw new Error("A valid userId is required.");
+  }
+
+  if (!projectId || typeof projectId !== "string") {
+    throw new Error("A valid projectId is required.");
+  }
+
+  const [queryEmbedding] = await generateEmbeddings([trimmedQuery]);
+
+  return searchSimilarChunks({
+    queryEmbedding,
+    userId,
+    projectId,
+    limit,
+  });
+}

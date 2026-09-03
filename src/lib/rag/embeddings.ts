@@ -5,7 +5,9 @@ import {
   RAG_EMBEDDING_MODEL,
 } from "@/lib/rag/constants";
 
-export function getEmbeddingDimensions(modelName = RAG_EMBEDDING_MODEL): number {
+export function getEmbeddingDimensions(
+  modelName = RAG_EMBEDDING_MODEL,
+): number {
   const dimensions = RAG_EMBEDDING_DIMENSIONS[modelName];
 
   if (!dimensions) {
@@ -33,7 +35,9 @@ export async function generateEmbeddings(texts: string[]): Promise<number[][]> {
 
     const trimmed = text.trim();
     if (!trimmed) {
-      throw new Error(`Text at index ${index} is empty and cannot be embedded.`);
+      throw new Error(
+        `Text at index ${index} is empty and cannot be embedded.`,
+      );
     }
 
     return trimmed;
@@ -63,8 +67,12 @@ export async function generateEmbeddings(texts: string[]): Promise<number[][]> {
       }
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "Unknown embedding generation error";
-      throw new Error(`Failed to generate embeddings for batch ${i}: ${message}`);
+        error instanceof Error
+          ? error.message
+          : "Unknown embedding generation error";
+      throw new Error(
+        `Failed to generate embeddings for batch ${i}: ${message}`,
+      );
     }
   }
 

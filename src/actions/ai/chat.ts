@@ -8,6 +8,7 @@ export interface GenerateChatResponseInput {
   projectId: string;
   chatId: string;
   question: string;
+  documentIds?: string[];
 }
 
 export interface GenerateChatResponseResult {
@@ -21,17 +22,22 @@ export async function generateChatResponse({
   projectId,
   chatId,
   question,
+  documentIds,
 }: GenerateChatResponseInput): Promise<GenerateChatResponseResult> {
   const relevantChunks = await retrieveRelevantChunks({
     query: question,
     userId,
     projectId,
+    documentIds,
   });
 
   const context = formatRetrievedChunks(relevantChunks);
+  const isScoped = Boolean(documentIds && documentIds.length > 0);
   const assistantResult = await generateKnowledgeAnswer({
     question,
     context,
+    isScoped,
+    scopedSourceCount: documentIds?.length ?? 0,
   });
 
   return {

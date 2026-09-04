@@ -26,14 +26,24 @@ export function formatRetrievedChunks(chunks: RetrievedChunkResult[]): string {
 export function buildKnowledgeAssistantMessages({
   question,
   context,
+  isScoped = false,
+  scopedSourceCount = 0,
 }: {
   question: string;
   context: string;
+  isScoped?: boolean;
+  scopedSourceCount?: number;
 }) {
+  const systemPrompt = isScoped
+    ? `${KNOWLEDGE_ASSISTANT_SYSTEM_PROMPT}
+
+The user has scoped this conversation to ${scopedSourceCount} specific ${scopedSourceCount === 1 ? "source" : "sources"} out of the project. Answer only using the retrieved context below, which is already limited to those sources. If it's empty or insufficient, say plainly that you couldn't find the answer in the selected sources and suggest the user widen the scope to the whole project.`
+    : KNOWLEDGE_ASSISTANT_SYSTEM_PROMPT;
+
   return [
     {
       role: "system" as const,
-      content: KNOWLEDGE_ASSISTANT_SYSTEM_PROMPT,
+      content: systemPrompt,
     },
     {
       role: "user" as const,

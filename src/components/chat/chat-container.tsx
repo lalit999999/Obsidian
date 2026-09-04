@@ -5,11 +5,12 @@ import { MessageSquareText, PanelLeft, PanelRight, RotateCcw, X } from "lucide-r
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
-import type { Chat } from "@/types";
+import type { Chat, Document } from "@/types";
 import type { ChatMessage } from "@/types/chat";
 import { ChatEmptyState } from "./chat-empty-state";
 import { ChatMessages } from "./chat-messages";
 import { ChatInput } from "./chat-input";
+import { ChatScopeBar } from "./chat-scope-bar";
 
 interface ChatContainerProps {
   activeChat?: Chat;
@@ -25,6 +26,9 @@ interface ChatContainerProps {
   onOpenDocuments?: () => void;
   onOpenSource?: (documentId: string) => void;
   disabled?: boolean;
+  documents: Document[];
+  selectedDocumentIds: string[];
+  onClearScope: () => void;
 }
 
 export function ChatContainer({
@@ -41,6 +45,9 @@ export function ChatContainer({
   onOpenDocuments,
   onOpenSource,
   disabled,
+  documents,
+  selectedDocumentIds,
+  onClearScope,
 }: ChatContainerProps) {
   const showEmptyState = messages.length === 0 && !isLoadingMessages;
 
@@ -81,7 +88,10 @@ export function ChatContainer({
             <Spinner className="size-5 text-muted-foreground" />
           </div>
         ) : showEmptyState ? (
-          <ChatEmptyState onSelectPrompt={onSendMessage} />
+          <ChatEmptyState
+            onSelectPrompt={onSendMessage}
+            scopedDocumentCount={selectedDocumentIds.length}
+          />
         ) : (
           <ChatMessages
             messages={messages}
@@ -124,6 +134,12 @@ export function ChatContainer({
         </div>
       ) : null}
 
+      <ChatScopeBar
+        documents={documents}
+        selectedDocumentIds={selectedDocumentIds}
+        onClear={onClearScope}
+        onOpenSource={onOpenSource}
+      />
       <ChatInput
         onSendMessage={onSendMessage}
         isLoading={isSending}

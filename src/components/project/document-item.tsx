@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Download, Eye, File, FileCode2, FileText, MoreVertical, Trash2 } from "lucide-react";
+import { Download, Eye, MoreVertical, Trash2 } from "lucide-react";
 
 import {
   AlertDialog,
@@ -14,6 +14,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,41 +22,43 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { formatBytes } from "@/lib/format";
+import { sourceTypeForKind } from "@/lib/sources/registry";
 import type { Document } from "@/types";
 import { DocumentStatusBadge } from "./document-status-badge";
 
 interface DocumentItemProps extends Document {
+  selected?: boolean;
+  onToggleSelect?: (documentId: string) => void;
   onDelete?: (documentId: string) => Promise<void> | void;
   onPreview?: (documentId: string) => void;
-}
-
-function getFileIcon(fileName: string) {
-  if (fileName.endsWith(".md")) {
-    return FileCode2;
-  }
-
-  if (fileName.endsWith(".txt")) {
-    return FileText;
-  }
-
-  return File;
 }
 
 export function DocumentItem({
   id,
   fileName,
   fileSize,
-  cloudinaryUrl,
   status,
   createdAt,
   error,
+  sourceKind,
+  pageCount,
+  selected = false,
+  onToggleSelect,
   onDelete,
   onPreview,
 }: DocumentItemProps) {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const FileIcon = getFileIcon(fileName);
+  const sourceType = sourceTypeForKind(sourceKind);
+  const FileIcon = sourceType.icon;
+  const isReady = status === "READY";
 
   const handleDelete = async () => {
     setIsDeleting(true);
@@ -67,6 +70,22 @@ export function DocumentItem({
     }
   };
 
+  const checkbox = (
+    <Checkbox
+      checked={selected}
+      disabled={!isReady}
+      aria-label={
+        isReady
+          ? selected
+            ? `Deselect ${fileName}`
+            : `Select ${fileName}`
+          : `${fileName} isn't ready to select yet`
+      }
+      onCheckedChange={() => onToggleSelect?.(id)}
+      onClick={(event) => event.stopPropagation()}
+    />
+  );
+
   return (
     <div className="group relative flex items-center gap-3 rounded-md px-3 py-2.5 transition-colors hover:bg-muted/50">
       <button
@@ -76,7 +95,26 @@ export function DocumentItem({
         className="absolute inset-0 rounded-md transition-transform active:scale-[0.995] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 motion-reduce:active:scale-100"
       />
 
-      <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+      <div className="relative z-10 shrink-0">
+        {isReady ? (
+          checkbox
+        ) : (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="inline-flex">{checkbox}</span>
+              </TooltipTrigger>
+              <TooltipContent side="top">
+                Only ready sources can be selected for chat scope.
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
+      </div>
+
+      <div
+        className={`flex size-8 shrink-0 items-center justify-center rounded-md ${sourceType.accentClassName}`}
+      >
         <FileIcon className="size-4" />
       </div>
 
@@ -87,6 +125,14 @@ export function DocumentItem({
         </div>
         <div className="mt-0.5 flex flex-wrap gap-x-1.5 text-xs text-muted-foreground">
           <span>{formatBytes(fileSize)}</span>
+          {pageCount ? (
+            <>
+              <span>·</span>
+              <span>
+                {pageCount} {pageCount === 1 ? "page" : "pages"}
+              </span>
+            </>
+          ) : null}
           <span>·</span>
           <span>{new Date(createdAt).toLocaleDateString()}</span>
         </div>
@@ -106,7 +152,7 @@ export function DocumentItem({
               Open preview
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <a href={cloudinaryUrl} download={fileName}>
+              <a href={`/api/documents/${id}/raw?download=1`}>
                 <Download className="mr-2 size-4" />
                 Download
               </a>
@@ -126,7 +172,7 @@ export function DocumentItem({
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this document?</AlertDialogTitle>
+            <AlertDialogTitle>Delete this source?</AlertDialogTitle>
             <AlertDialogDescription>
               {fileName} and its indexed chunks will be permanently removed.
               This cannot be undone.

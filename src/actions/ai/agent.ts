@@ -7,6 +7,8 @@ import {
 export interface KnowledgeAssistantInput {
   question: string;
   context: string;
+  isScoped?: boolean;
+  scopedSourceCount?: number;
 }
 
 export interface KnowledgeAssistantResult {
@@ -17,8 +19,15 @@ export interface KnowledgeAssistantResult {
 export async function generateKnowledgeAnswer({
   question,
   context,
+  isScoped,
+  scopedSourceCount,
 }: KnowledgeAssistantInput): Promise<KnowledgeAssistantResult> {
-  const messages = buildKnowledgeAssistantMessages({ question, context });
+  const messages = buildKnowledgeAssistantMessages({
+    question,
+    context,
+    isScoped,
+    scopedSourceCount,
+  });
 
   let response;
   try {

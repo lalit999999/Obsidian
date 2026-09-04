@@ -35,7 +35,35 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     }
 
     const body = await request.json();
-    const { content } = parseChatMessageInput(body);
+    const { content, documentIds: requestedDocumentIds } =
+      parseChatMessageInput(body);
+
+    // Resolution order per AGENTS.md C7: an explicit body value wins, else
+    // fall back to the chat's persisted scope. Ids that no longer belong to
+    // this user/project or aren't READY (a source can be deleted or still be
+    // processing mid-conversation) are silently dropped — if that empties a
+    // non-empty request, the resulting [] already means "whole project" per
+    // the C6 filter semantics, so no separate fallback branch is needed.
+    const requestedScope = requestedDocumentIds ?? chat.documentIds;
+    let scopedDocumentIds: string[] = [];
+
+    if (requestedScope.length > 0) {
+      const validDocuments = await prisma.document.findMany({
+        where: {
+          id: { in: requestedScope },
+          projectId: chat.projectId,
+          userId: currentUser.id,
+          status: "READY",
+        },
+        select: { id: true },
+      });
+      scopedDocumentIds = validDocuments.map((doc) => doc.id);
+    }
+
+    await prisma.chat.update({
+      where: { id: chat.id },
+      data: { documentIds: scopedDocumentIds },
+    });
 
     const userMessageRecord = await prisma.message.create({
       data: {
@@ -50,6 +78,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       projectId: chat.projectId,
       chatId: chat.id,
       question: content,
+      documentIds: scopedDocumentIds,
     });
 
     const assistantMessageRecord = await prisma.message.create({
@@ -72,6 +101,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       userMessage: serializeMessage(userMessageRecord),
       assistantMessage: serializeMessage(assistantMessageRecord),
       sources: aiResult.sources,
+      scopedDocumentIds,
     });
   } catch (error) {
     return handleRouteError(error);

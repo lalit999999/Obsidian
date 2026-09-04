@@ -1,4 +1,5 @@
 import { Reveal } from "@/components/landing/reveal";
+import { SpotlightCard } from "@/components/landing/spotlight-card";
 
 const steps = [
   {
@@ -28,7 +29,7 @@ export function HowItWorks() {
       className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-24"
     >
       <Reveal>
-        <h2 className="max-w-xl text-3xl font-semibold tracking-[-0.02em] sm:text-4xl">
+        <h2 className="max-w-xl font-display text-3xl tracking-[-0.02em] sm:text-4xl">
           A simple workflow that stays out of your way.
         </h2>
       </Reveal>

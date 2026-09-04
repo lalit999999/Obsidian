@@ -92,6 +92,23 @@ enum DocumentStatus {
   FAILED
 }
 
+enum SourceKind {
+  TEXT
+  MARKDOWN
+  PDF
+  DOCX
+  RTF
+  ODT
+  IMAGE
+}
+
+enum PreviewKind {
+  MARKDOWN
+  PLAIN
+  PDF
+  IMAGE
+}
+
 model Document {
   id        String @id @default(uuid())
   projectId String
@@ -106,6 +123,13 @@ model Document {
 
   cloudinaryUrl      String
   cloudinaryPublicId String // required to delete the asset later
+
+  sourceKind      SourceKind  @default(TEXT)
+  previewKind     PreviewKind @default(PLAIN)
+  extractedText   String?     @db.Text
+  previewMarkdown String?     @db.Text
+  textTruncated   Boolean     @default(false)
+  pageCount       Int?
 
   status     DocumentStatus @default(PENDING)
   error      String?        @db.Text
@@ -127,6 +151,9 @@ model Chat {
   title     String   @default("New chat")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  // Empty array = chat is scoped to every READY document in the project.
+  documentIds String[] @default([])
 
   project  Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
   messages Message[]

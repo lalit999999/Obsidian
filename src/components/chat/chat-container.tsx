@@ -1,11 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
-
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import type { Chat } from "@/types";
-import type { ChatMessage, SendMessageResponse } from "@/types/chat";
+import type { ChatMessage } from "@/types/chat";
 import { ChatEmptyState } from "./chat-empty-state";
 import { ChatMessages } from "./chat-messages";
 import { ChatInput } from "./chat-input";
@@ -13,101 +11,25 @@ import { ChatInput } from "./chat-input";
 interface ChatContainerProps {
   activeChat?: Chat;
   messages: ChatMessage[];
-  onChatUpdated?: (chatId: string, title: string) => void;
+  isSending: boolean;
+  error: string | null;
+  onSendMessage: (content: string) => void;
   onOpenChats?: () => void;
   onOpenDocuments?: () => void;
+  disabled?: boolean;
 }
 
 export function ChatContainer({
   activeChat,
   messages,
-  onChatUpdated,
+  isSending,
+  error,
+  onSendMessage,
   onOpenChats,
   onOpenDocuments,
+  disabled,
 }: ChatContainerProps) {
-  const [localMessages, setLocalMessages] = useState(messages);
-  const [isSending, setIsSending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    setLocalMessages(messages);
-  }, [messages, activeChat?.id]);
-
-  const sendMessage = async (content: string) => {
-    if (!activeChat || isSending) {
-      return;
-    }
-
-    const trimmed = content.trim();
-    if (!trimmed) {
-      return;
-    }
-
-    setIsSending(true);
-    setError(null);
-
-    const temporaryUserMessage: ChatMessage = {
-      id: `temp-${Date.now()}`,
-      chatId: activeChat.id,
-      role: "USER",
-      content: trimmed,
-      createdAt: new Date().toISOString(),
-    };
-
-    setLocalMessages((current) => [...current, temporaryUserMessage]);
-
-    try {
-      const response = await fetch(`/api/chats/${activeChat.id}/messages`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ content: trimmed }),
-      });
-
-      let payload: SendMessageResponse | { success: false; error?: { message?: string } };
-
-      try {
-        payload = await response.json();
-      } catch {
-        throw new Error(
-          `Failed to send message (server returned ${response.status}).`,
-        );
-      }
-
-      if (!response.ok || !payload.success) {
-        const serverMessage =
-          "error" in payload ? payload.error?.message : undefined;
-        throw new Error(serverMessage ?? "Failed to send message.");
-      }
-
-      setLocalMessages((current) => {
-        const withoutTemp = current.filter(
-          (message) => message.id !== temporaryUserMessage.id,
-        );
-        return [
-          ...withoutTemp,
-          payload.data.userMessage,
-          payload.data.assistantMessage,
-        ];
-      });
-
-      if (activeChat.title === "New chat") {
-        onChatUpdated?.(activeChat.id, trimmed.slice(0, 120));
-      }
-    } catch (error) {
-      setError(
-        error instanceof Error ? error.message : "Something went wrong.",
-      );
-      setLocalMessages((current) =>
-        current.filter((message) => message.id !== temporaryUserMessage.id),
-      );
-    } finally {
-      setIsSending(false);
-    }
-  };
-
-  const showEmptyState = !activeChat || localMessages.length === 0;
+  const showEmptyState = messages.length === 0;
 
   return (
     <Card className="flex h-full min-h-0 flex-col overflow-hidden border-border/80 bg-card/90">
@@ -115,7 +37,7 @@ export function ChatContainer({
         <div>
           <p className="text-sm text-muted-foreground">AI chat</p>
           <h2 className="text-lg font-semibold">
-            {activeChat ? activeChat.title : "Select a chat"}
+            {activeChat ? activeChat.title : "New chat"}
           </h2>
         </div>
         <div className="flex items-center gap-2 lg:hidden">
@@ -134,12 +56,12 @@ export function ChatContainer({
 
       <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5">
         {showEmptyState ? (
-          <ChatEmptyState onSelectPrompt={sendMessage} />
+          <ChatEmptyState onSelectPrompt={onSendMessage} />
         ) : (
           <ChatMessages
-            messages={localMessages}
+            messages={messages}
             isLoading={isSending}
-            onPromptSelect={sendMessage}
+            onPromptSelect={onSendMessage}
           />
         )}
       </div>
@@ -151,9 +73,10 @@ export function ChatContainer({
       ) : null}
       <div className="shrink-0">
         <ChatInput
-          onSendMessage={sendMessage}
+          onSendMessage={onSendMessage}
           isLoading={isSending}
           error={error}
+          disabled={disabled}
         />
       </div>
     </Card>

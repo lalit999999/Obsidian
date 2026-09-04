@@ -20,7 +20,7 @@ interface ChatSidebarProps {
   chats: Chat[];
   activeChatId: string | null;
   onSelectChat: (chatId: string) => void;
-  onCreateChat: () => Promise<void> | void;
+  onCreateChat: () => Promise<unknown> | void;
   onRenameChat?: (chatId: string) => Promise<void> | void;
   onDeleteChat?: (chatId: string) => Promise<void> | void;
 }

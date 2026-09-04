@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/sheet";
 import { Spinner } from "@/components/ui/spinner";
 import type { Chat, Document, Message, Project } from "@/types";
+import type { SendMessageResponse } from "@/types/chat";
 import { ChatContainer } from "@/components/chat/chat-container";
 import { ChatSidebar } from "./chat-sidebar";
 import { DocumentsPanel } from "./documents-panel";
@@ -45,6 +46,9 @@ export function ProjectWorkspace({
   const [messagesError, setMessagesError] = useState<string | null>(null);
   const [mobileChatsOpen, setMobileChatsOpen] = useState(false);
   const [mobileDocsOpen, setMobileDocsOpen] = useState(false);
+  const [isCreatingChat, setIsCreatingChat] = useState(false);
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
+  const [sendError, setSendError] = useState<string | null>(null);
 
   useEffect(() => {
     setChats(initialChats);
@@ -101,7 +105,7 @@ export function ProjectWorkspace({
     void loadMessages(chatId);
   };
 
-  const createChat = async () => {
+  const createChat = async (): Promise<Chat> => {
     const response = await fetch("/api/chats", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -117,6 +121,111 @@ export function ProjectWorkspace({
     setChats((current) => [newChat, ...current]);
     setMessagesByChatId((current) => ({ ...current, [newChat.id]: [] }));
     setActiveChatId(newChat.id);
+
+    return newChat;
+  };
+
+  const ensureActiveChat = async (): Promise<Chat> => {
+    if (activeChat) {
+      return activeChat;
+    }
+
+    setIsCreatingChat(true);
+    try {
+      return await createChat();
+    } finally {
+      setIsCreatingChat(false);
+    }
+  };
+
+  const canCreateChat = !isCreatingChat;
+
+  const sendMessage = async (content: string) => {
+    const trimmed = content.trim();
+    if (!trimmed || isSendingMessage) {
+      return;
+    }
+
+    setIsSendingMessage(true);
+    setSendError(null);
+
+    let chat: Chat;
+    try {
+      chat = await ensureActiveChat();
+    } catch (error) {
+      setSendError(
+        error instanceof Error ? error.message : "Failed to start a new chat.",
+      );
+      setIsSendingMessage(false);
+      return;
+    }
+
+    const chatId = chat.id;
+    const temporaryUserMessage: Message = {
+      id: `temp-${Date.now()}`,
+      chatId,
+      role: "USER",
+      content: trimmed,
+      createdAt: new Date().toISOString(),
+    };
+
+    setMessagesByChatId((current) => ({
+      ...current,
+      [chatId]: [...(current[chatId] ?? []), temporaryUserMessage],
+    }));
+
+    try {
+      const response = await fetch(`/api/chats/${chatId}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: trimmed }),
+      });
+
+      let payload:
+        | SendMessageResponse
+        | { success: false; error?: { message?: string } };
+
+      try {
+        payload = await response.json();
+      } catch {
+        throw new Error(
+          `Failed to send message (server returned ${response.status}).`,
+        );
+      }
+
+      if (!response.ok || !payload.success) {
+        const serverMessage =
+          "error" in payload ? payload.error?.message : undefined;
+        throw new Error(serverMessage ?? "Failed to send message.");
+      }
+
+      setMessagesByChatId((current) => ({
+        ...current,
+        [chatId]: [
+          ...(current[chatId] ?? []).filter(
+            (message) => message.id !== temporaryUserMessage.id,
+          ),
+          payload.data.userMessage,
+          payload.data.assistantMessage,
+        ],
+      }));
+
+      if (chat.title === "New chat") {
+        handleChatTitleChange(chatId, trimmed.slice(0, 120));
+      }
+    } catch (error) {
+      setSendError(
+        error instanceof Error ? error.message : "Something went wrong.",
+      );
+      setMessagesByChatId((current) => ({
+        ...current,
+        [chatId]: (current[chatId] ?? []).filter(
+          (message) => message.id !== temporaryUserMessage.id,
+        ),
+      }));
+    } finally {
+      setIsSendingMessage(false);
+    }
   };
 
   const renameChat = async (chatId: string) => {
@@ -293,9 +402,12 @@ export function ProjectWorkspace({
               activeChat={activeChat}
               messages={activeMessages}
               key={activeChat?.id ?? "no-chat"}
-              onChatUpdated={handleChatTitleChange}
+              isSending={isSendingMessage}
+              error={sendError}
+              onSendMessage={sendMessage}
               onOpenChats={() => setMobileChatsOpen(true)}
               onOpenDocuments={() => setMobileDocsOpen(true)}
+              disabled={!activeChat && !canCreateChat}
             />
           </div>
         )}

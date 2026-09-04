@@ -3,7 +3,6 @@ import { NextRequest } from "next/server";
 import { deleteChatAction, renameChatAction } from "@/actions/chat/chat";
 import { requireCurrentUser } from "@/lib/auth";
 import { handleRouteError, jsonError, jsonSuccess } from "@/lib/http";
-import { getOwnedChat } from "@/lib/ownership";
 import { prisma } from "@/lib/prisma";
 import { serializeChat, serializeMessage } from "@/lib/serializers";
 

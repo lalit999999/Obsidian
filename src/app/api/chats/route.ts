@@ -5,7 +5,6 @@ import { requireCurrentUser } from "@/lib/auth";
 import { handleRouteError, jsonError, jsonSuccess } from "@/lib/http";
 import { getOwnedProject } from "@/lib/ownership";
 import { prisma } from "@/lib/prisma";
-import { parseCreateChatInput } from "@/lib/validations";
 import { serializeChat } from "@/lib/serializers";
 
 export async function GET(request: NextRequest) {

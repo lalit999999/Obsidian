@@ -61,11 +61,26 @@ async function ProjectContent({
 
   const project = serializeProject(projectRecord);
 
+  // Bridge fields added by the shared contract (C3/C9) that Session A's
+  // serializers.ts (owned by that session, not touched here) doesn't emit
+  // yet. Safe to delete once that file is merged with the updated shape.
+  const initialChats = chatRecords.map((chat) => ({
+    ...serializeChat(chat),
+    documentIds: chat.documentIds,
+  }));
+  const initialDocuments = documentRecords.map((document) => ({
+    ...serializeDocument(document),
+    sourceKind: document.sourceKind,
+    previewKind: document.previewKind,
+    pageCount: document.pageCount,
+    textTruncated: document.textTruncated,
+  }));
+
   return (
     <ProjectWorkspace
       project={project}
-      initialChats={chatRecords.map(serializeChat)}
-      initialDocuments={documentRecords.map(serializeDocument)}
+      initialChats={initialChats}
+      initialDocuments={initialDocuments}
       initialActiveChatId={activeChatId}
       initialMessages={messageRecords.map(serializeMessage)}
     />

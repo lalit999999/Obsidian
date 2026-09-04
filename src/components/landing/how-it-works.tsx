@@ -1,5 +1,5 @@
 import { Reveal } from "@/components/landing/reveal";
-import { SpotlightCard } from "@/components/landing/spotlight-card";
+import { SpotlightCard } from "@/components/ui/spotlight-card";
 
 const steps = [
   {
@@ -34,19 +34,18 @@ export function HowItWorks() {
         </h2>
       </Reveal>
 
-      <ol className="mt-10 grid gap-0 sm:grid-cols-3">
+      <ol className="mt-10 grid gap-4 sm:grid-cols-3">
         {steps.map((step, index) => (
-          <Reveal
-            key={step.number}
-            as="li"
-            delayMs={index * 120}
-            className="border-t border-border py-6 pr-6 sm:border-t-0 sm:border-l sm:py-0 sm:pt-1 sm:pl-6 first:border-l-0 first:pl-0"
-          >
-            <span className="text-sm font-medium text-primary">{step.number}</span>
-            <h3 className="mt-2 text-lg font-medium">{step.title}</h3>
-            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-              {step.description}
-            </p>
+          <Reveal key={step.number} as="li" delayMs={index * 120}>
+            <SpotlightCard className="h-full p-6">
+              <span className="text-sm font-medium text-primary">
+                {step.number}
+              </span>
+              <h3 className="mt-2 text-lg font-medium">{step.title}</h3>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                {step.description}
+              </p>
+            </SpotlightCard>
           </Reveal>
         ))}
       </ol>

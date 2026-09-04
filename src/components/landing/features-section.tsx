@@ -1,7 +1,7 @@
 import { FileCheck2, FolderLock, Link2, Radar } from "lucide-react";
 
 import { Reveal } from "@/components/landing/reveal";
-import { SpotlightCard } from "@/components/landing/spotlight-card";
+import { SpotlightCard } from "@/components/ui/spotlight-card";
 
 const features = [
   {

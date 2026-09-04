@@ -8,17 +8,12 @@ import { cn } from "@/lib/utils";
 interface SpotlightCardProps {
   children: ReactNode;
   className?: string;
-  as?: "div" | "li";
 }
 
-export function SpotlightCard({
-  children,
-  className,
-  as: Component = "div",
-}: SpotlightCardProps) {
+export function SpotlightCard({ children, className }: SpotlightCardProps) {
   const shouldReduceMotion = useReducedMotion();
 
-  const handleMouseMove = (event: React.MouseEvent<HTMLElement>) => {
+  const handleMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
     if (shouldReduceMotion) {
       return;
     }
@@ -34,7 +29,7 @@ export function SpotlightCard({
   };
 
   return (
-    <Component
+    <div
       onMouseMove={handleMouseMove}
       className={cn(
         "group relative overflow-hidden rounded-lg border border-border/80 bg-card/60 transition-colors hover:border-primary/40",
@@ -52,6 +47,6 @@ export function SpotlightCard({
         />
       ) : null}
       <div className="relative">{children}</div>
-    </Component>
+    </div>
   );
 }

@@ -43,6 +43,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SpotlightCard } from "@/components/ui/spotlight-card";
 import type { Project } from "@/types";
 
 interface ProjectCardProps {
@@ -60,21 +61,6 @@ export function ProjectCard({ project, index }: ProjectCardProps) {
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isCreatingChat, setIsCreatingChat] = useState(false);
-
-  const handleMouseMove = (event: React.MouseEvent<HTMLDivElement>) => {
-    if (shouldReduceMotion) {
-      return;
-    }
-    const rect = event.currentTarget.getBoundingClientRect();
-    event.currentTarget.style.setProperty(
-      "--spotlight-x",
-      `${event.clientX - rect.left}px`,
-    );
-    event.currentTarget.style.setProperty(
-      "--spotlight-y",
-      `${event.clientY - rect.top}px`,
-    );
-  };
 
   const handleRename = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -165,26 +151,15 @@ export function ProjectCard({ project, index }: ProjectCardProps) {
   return (
     <>
       <motion.div
-        onMouseMove={handleMouseMove}
         initial={shouldReduceMotion ? false : { opacity: 0, y: 8 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{
           duration: 0.3,
           delay: shouldReduceMotion ? 0 : index * 0.04,
         }}
-        className="group relative overflow-hidden rounded-lg border border-border/80 bg-card/90 p-4 transition-[transform,border-color] hover:-translate-y-0.5 hover:border-primary/40"
+        className="transition-transform hover:-translate-y-0.5"
       >
-        {!shouldReduceMotion ? (
-          <div
-            aria-hidden
-            className="pointer-events-none absolute inset-0 opacity-0 transition-opacity duration-300 group-hover:opacity-100"
-            style={{
-              background:
-                "radial-gradient(400px circle at var(--spotlight-x, 50%) var(--spotlight-y, 50%), color-mix(in oklch, var(--primary) 12%, transparent), transparent 70%)",
-            }}
-          />
-        ) : null}
-
+      <SpotlightCard className="bg-card/90 p-4">
         <Link
           href={`/project/${project.id}`}
           aria-label={`Open ${project.name}`}
@@ -261,6 +236,7 @@ export function ProjectCard({ project, index }: ProjectCardProps) {
             })}
           </span>
         </div>
+      </SpotlightCard>
       </motion.div>
 
       <Dialog open={renameOpen} onOpenChange={setRenameOpen}>

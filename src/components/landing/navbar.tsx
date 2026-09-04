@@ -2,6 +2,12 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import {
+  motion,
+  useReducedMotion,
+  useScroll,
+  useSpring,
+} from "motion/react";
 import { Menu } from "lucide-react";
 
 import { cn } from "@/lib/utils";
@@ -25,29 +31,73 @@ interface NavbarProps {
   isSignedIn?: boolean;
 }
 
+const FLOAT_THRESHOLD_PX = 80;
+
 export function Navbar({ isSignedIn = false }: NavbarProps) {
-  const [scrolled, setScrolled] = useState(false);
+  const [floating, setFloating] = useState(false);
+  const [activeHref, setActiveHref] = useState<string | null>(null);
+  const shouldReduceMotion = useReducedMotion();
+  const { scrollYProgress } = useScroll();
+  const progressScaleX = useSpring(scrollYProgress, {
+    stiffness: 300,
+    damping: 40,
+    restDelta: 0.001,
+  });
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 8);
+    const onScroll = () => setFloating(window.scrollY > FLOAT_THRESHOLD_PX);
     onScroll();
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
+  useEffect(() => {
+    const sections = links
+      .map((link) => document.querySelector(link.href))
+      .filter((el): el is Element => Boolean(el));
+
+    if (sections.length === 0) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const mostVisible = entries
+          .filter((entry) => entry.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+
+        if (mostVisible) {
+          setActiveHref(`#${mostVisible.target.id}`);
+        }
+      },
+      { rootMargin: "-40% 0px -50% 0px", threshold: [0, 0.25, 0.5, 0.75, 1] },
+    );
+
+    sections.forEach((section) => observer.observe(section));
+    return () => observer.disconnect();
+  }, []);
+
+  const layoutTransition = shouldReduceMotion
+    ? { duration: 0 }
+    : { type: "spring" as const, stiffness: 300, damping: 30 };
+
   return (
-    <header
+    <motion.header
+      layout
+      transition={layoutTransition}
       className={cn(
-        "sticky top-0 z-40 transition-[background-color,border-color,backdrop-filter,box-shadow] duration-300 ease-out",
-        scrolled
-          ? "border-b border-border bg-background/80 shadow-sm shadow-black/[0.03] backdrop-blur-md"
-          : "border-b border-transparent bg-transparent",
+        "fixed inset-x-0 z-40",
+        floating
+          ? "top-4 mx-auto w-[calc(100%-2rem)] max-w-3xl rounded-full border bg-background/70 shadow-lg shadow-black/6 backdrop-blur-xl"
+          : "top-0 w-full border-b border-transparent bg-transparent",
       )}
     >
       <div
         className={cn(
-          "mx-auto flex max-w-7xl items-center justify-between px-4 transition-[padding] duration-300 ease-out sm:px-6 lg:px-8",
-          scrolled ? "py-3" : "py-4",
+          "mx-auto flex items-center justify-between px-4 transition-[padding,height] duration-300",
+          floating
+            ? "h-12"
+            : "h-16 max-w-7xl sm:px-6 lg:px-8",
         )}
       >
         <Link
@@ -57,29 +107,49 @@ export function Navbar({ isSignedIn = false }: NavbarProps) {
           <span className="flex size-7 items-center justify-center rounded-md border border-primary bg-primary/10 text-sm font-semibold text-primary">
             O
           </span>
-          <span>Obsidian</span>
+          <span className={floating ? "hidden sm:inline" : undefined}>
+            Obsidian
+          </span>
         </Link>
 
-        <nav aria-label="Section" className="hidden items-center gap-8 text-sm md:flex">
-          {links.map((link) => (
-            <a
-              key={link.href}
-              href={link.href}
-              className="text-muted-foreground transition-colors hover:text-foreground"
-            >
-              {link.label}
-            </a>
-          ))}
+        <nav
+          aria-label="Section"
+          className="hidden items-center gap-1 text-sm md:flex"
+        >
+          {links.map((link) => {
+            const active = activeHref === link.href;
+            return (
+              <a
+                key={link.href}
+                href={link.href}
+                className={cn(
+                  "relative rounded-full px-3 py-1.5 transition-colors",
+                  active
+                    ? "text-foreground"
+                    : "text-muted-foreground hover:text-foreground",
+                )}
+              >
+                {active ? (
+                  <motion.span
+                    layoutId="nav-active-pill"
+                    className="absolute inset-0 rounded-full bg-muted"
+                    transition={layoutTransition}
+                  />
+                ) : null}
+                <span className="relative">{link.label}</span>
+              </a>
+            );
+          })}
         </nav>
 
         <div className="hidden items-center gap-2 md:flex">
           <ModeToggle />
           {isSignedIn ? (
-            <Button asChild>
+            <Button size="sm" asChild>
               <Link href="/dashboard">Dashboard</Link>
             </Button>
           ) : (
-            <Button variant="outline" asChild>
+            <Button variant="outline" size="sm" asChild>
               <Link href="/login">Sign in</Link>
             </Button>
           )}
@@ -124,6 +194,18 @@ export function Navbar({ isSignedIn = false }: NavbarProps) {
           </Sheet>
         </div>
       </div>
-    </header>
+
+      <div
+        className={cn(
+          "absolute bottom-0 h-0.5 overflow-hidden",
+          floating ? "inset-x-3 rounded-full bg-border/50" : "inset-x-0 bg-transparent",
+        )}
+      >
+        <motion.div
+          className="h-full origin-left bg-primary"
+          style={{ scaleX: progressScaleX }}
+        />
+      </div>
+    </motion.header>
   );
 }

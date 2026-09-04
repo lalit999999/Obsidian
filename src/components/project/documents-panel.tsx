@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { FileStack, PanelRightClose, Upload } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
@@ -28,6 +29,7 @@ export function DocumentsPanel({
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const shouldReduceMotion = useReducedMotion();
 
   const handleUpload = async (file: File) => {
     if (isUploading) {
@@ -75,14 +77,25 @@ export function DocumentsPanel({
       <ScrollArea className="min-h-0 flex-1">
         <div className="space-y-1 p-2">
           {documents.length ? (
-            documents.map((document) => (
-              <DocumentItem
-                key={document.id}
-                {...document}
-                onDelete={onDeleteDocument}
-                onPreview={onPreviewDocument}
-              />
-            ))
+            <AnimatePresence initial={false}>
+              {documents.map((document) => (
+                <motion.div
+                  key={document.id}
+                  initial={
+                    shouldReduceMotion ? false : { opacity: 0, y: -8 }
+                  }
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={shouldReduceMotion ? undefined : { opacity: 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <DocumentItem
+                    {...document}
+                    onDelete={onDeleteDocument}
+                    onPreview={onPreviewDocument}
+                  />
+                </motion.div>
+              ))}
+            </AnimatePresence>
           ) : (
             <div className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
               No documents uploaded yet. Use the upload button to add your

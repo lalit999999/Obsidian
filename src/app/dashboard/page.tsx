@@ -1,9 +1,9 @@
 import { Suspense } from "react";
 
+import { DashboardIntro } from "@/components/dashboard/dashboard-intro";
 import { DashboardShell } from "@/components/dashboard/dashboard-shell";
 import { ProjectGrid } from "@/components/dashboard/project-grid";
 import { ProjectGridSkeleton } from "@/components/dashboard/project-grid-skeleton";
-import { WelcomeSection } from "@/components/dashboard/welcome-section";
 import { requireCurrentUser, type CurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { serializeProject } from "@/lib/serializers";
@@ -31,7 +31,7 @@ async function DashboardContent({ user }: { user: CurrentUser }) {
 
   return (
     <>
-      <WelcomeSection user={user} statistics={statistics} />
+      <DashboardIntro user={user} statistics={statistics} />
       <ProjectGrid projects={serializedProjects} />
     </>
   );

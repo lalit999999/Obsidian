@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { PanelLeftOpen, PanelRightOpen } from "lucide-react";
+import { toast } from "sonner";
 
 import {
   Sheet,
@@ -47,6 +48,9 @@ export function ProjectWorkspace({
   const [isCreatingChat, setIsCreatingChat] = useState(false);
   const [isSendingMessage, setIsSendingMessage] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
+  const [lastFailedMessage, setLastFailedMessage] = useState<string | null>(
+    null,
+  );
   const [leftCollapsed, setLeftCollapsed] = useState(false);
   const [rightCollapsed, setRightCollapsed] = useState(false);
   const [previewDocumentId, setPreviewDocumentId] = useState<string | null>(
@@ -151,6 +155,7 @@ export function ProjectWorkspace({
 
     setIsSendingMessage(true);
     setSendError(null);
+    setLastFailedMessage(null);
 
     let chat: Chat;
     try {
@@ -159,6 +164,7 @@ export function ProjectWorkspace({
       setSendError(
         error instanceof Error ? error.message : "Failed to start a new chat.",
       );
+      setLastFailedMessage(trimmed);
       setIsSendingMessage(false);
       return;
     }
@@ -220,6 +226,7 @@ export function ProjectWorkspace({
       setSendError(
         error instanceof Error ? error.message : "Something went wrong.",
       );
+      setLastFailedMessage(trimmed);
       setMessagesByChatId((current) => ({
         ...current,
         [chatId]: (current[chatId] ?? []).filter(
@@ -228,6 +235,12 @@ export function ProjectWorkspace({
       }));
     } finally {
       setIsSendingMessage(false);
+    }
+  };
+
+  const retryLastMessage = () => {
+    if (lastFailedMessage) {
+      void sendMessage(lastFailedMessage);
     }
   };
 
@@ -290,6 +303,7 @@ export function ProjectWorkspace({
     }
 
     setDocuments((current) => [payload.data.document as Document, ...current]);
+    toast.success("Document uploaded");
   };
 
   const deleteDocument = async (documentId: string) => {
@@ -379,6 +393,7 @@ export function ProjectWorkspace({
             messagesError={messagesError}
             onDismissMessagesError={() => setMessagesError(null)}
             error={sendError}
+            onRetry={lastFailedMessage ? retryLastMessage : undefined}
             onSendMessage={sendMessage}
             onOpenChats={() => setMobileChatsOpen(true)}
             onOpenDocuments={() => setMobileDocsOpen(true)}

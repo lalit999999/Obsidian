@@ -4,7 +4,6 @@ import { createContext, useContext, useState, useTransition } from "react";
 import { PanelLeft, Plus } from "lucide-react";
 
 import { CreateProjectDialog } from "@/components/dashboard/create-project-dialog";
-import { DashboardHeader } from "@/components/dashboard/dashboard-header";
 import { DashboardSidebar } from "@/components/dashboard/dashboard-sidebar";
 import { Button } from "@/components/ui/button";
 import {

@@ -185,7 +185,7 @@ export function DashboardSidebar({ user, forceVisible }: DashboardSidebarProps) 
       >
         <div className="flex items-center gap-3 border-b px-5 py-5">
           <Link href="/dashboard" className="flex min-w-0 items-center gap-3">
-            <span className="flex size-10 shrink-0 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
+            <span className="flex size-10 shrink-0 items-center justify-center rounded-md bg-primary text-primary-foreground">
               O
             </span>
             {collapsed && !forceVisible ? null : (
@@ -210,23 +210,26 @@ export function DashboardSidebar({ user, forceVisible }: DashboardSidebarProps) 
                 href={item.href}
                 title={showLabel ? undefined : item.label}
                 className={cn(
-                  "flex items-center gap-3 rounded-2xl px-4 py-3 text-sm font-medium transition-colors",
+                  "relative flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
                   !showLabel && "justify-center px-0",
                   active
-                    ? "bg-primary/10 text-primary"
+                    ? "text-primary"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground",
                 )}
               >
+                {active ? (
+                  <span className="absolute inset-y-1 left-0 w-0.5 rounded-full bg-primary" />
+                ) : null}
                 <Icon className="size-4 shrink-0" />
                 {showLabel ? item.label : null}
               </Link>
             );
           })}
         </nav>
-        <div className="border-t p-4">
+        <div className="border-t p-3">
           <div
             className={cn(
-              "flex items-center gap-3 rounded-3xl border bg-background p-3",
+              "flex items-center gap-3 rounded-lg border bg-background p-3",
               !forceVisible && collapsed && "justify-center p-2",
             )}
           >
@@ -247,13 +250,15 @@ export function DashboardSidebar({ user, forceVisible }: DashboardSidebarProps) 
               </div>
             )}
           </div>
+        </div>
+        <div className="border-t p-3">
           <form action={signOutAction}>
             <Button
               type="submit"
               variant="ghost"
               title={!forceVisible && collapsed ? "Logout" : undefined}
               className={cn(
-                "mt-3 w-full text-muted-foreground",
+                "w-full text-muted-foreground",
                 !forceVisible && collapsed ? "justify-center px-0" : "justify-start",
               )}
             >

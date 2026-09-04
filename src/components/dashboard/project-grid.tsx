@@ -3,13 +3,6 @@
 import { FolderPlus } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { useOpenCreateProjectDialog } from "@/components/dashboard/dashboard-shell";
 import type { Project } from "@/types";
 import { ProjectCard } from "./project-card";
@@ -23,28 +16,26 @@ export function ProjectGrid({ projects }: ProjectGridProps) {
 
   if (projects.length === 0) {
     return (
-      <Card className="border-dashed border-border/80 bg-card/70">
-        <CardHeader>
-          <CardTitle>No projects yet</CardTitle>
-          <CardDescription>
-            Create your first knowledge-base project to start organizing notes
-            and chats.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button onClick={openCreateDialog}>
-            <FolderPlus className="size-4" />
-            Create your first project
-          </Button>
-        </CardContent>
-      </Card>
+      <div className="flex flex-col items-center gap-3 py-16 text-center">
+        <h2 className="text-lg font-semibold">
+          Create your first project to get started
+        </h2>
+        <p className="max-w-sm text-sm text-muted-foreground">
+          Projects group your uploaded notes with the chats that answer
+          questions about them.
+        </p>
+        <Button onClick={openCreateDialog} className="mt-2">
+          <FolderPlus className="size-4" />
+          Create your first project
+        </Button>
+      </div>
     );
   }
 
   return (
-    <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-      {projects.map((project) => (
-        <ProjectCard key={project.id} project={project} />
+    <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+      {projects.map((project, index) => (
+        <ProjectCard key={project.id} project={project} index={index} />
       ))}
     </section>
   );

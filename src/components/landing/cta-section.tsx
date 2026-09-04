@@ -1,6 +1,6 @@
 import Link from "next/link";
 
-import { Button } from "@/components/ui/button";
+import { LandingButton } from "@/components/landing/landing-button";
 import { Reveal } from "@/components/landing/reveal";
 
 export function CTASection() {
@@ -11,7 +11,7 @@ export function CTASection() {
     >
       <Reveal className="flex flex-col items-start gap-6 rounded-lg border border-border bg-card p-8 sm:flex-row sm:items-center sm:justify-between sm:p-10">
         <div>
-          <h2 className="text-2xl font-semibold tracking-[-0.02em] sm:text-3xl">
+          <h2 className="font-display text-2xl tracking-[-0.02em] sm:text-3xl">
             Create your first project.
           </h2>
           <p className="mt-2 max-w-md text-muted-foreground">
@@ -19,9 +19,9 @@ export function CTASection() {
             minute.
           </p>
         </div>
-        <Button size="lg" asChild>
+        <LandingButton size="lg" asChild>
           <Link href="/login">Get started</Link>
-        </Button>
+        </LandingButton>
       </Reveal>
     </section>
   );

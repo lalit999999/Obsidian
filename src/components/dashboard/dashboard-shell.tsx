@@ -63,8 +63,8 @@ export function DashboardShell({ user, children }: DashboardShellProps) {
       <div className="flex min-h-screen bg-background">
         <DashboardSidebar user={user} />
         <main className="flex-1">
-          <div className="mx-auto flex max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between rounded-3xl border bg-card/90 px-4 py-3 xl:hidden">
+          <div className="flex w-full flex-col gap-6 px-6 py-6">
+            <div className="flex items-center justify-between rounded-lg border bg-card/90 px-4 py-3 xl:hidden">
               <div>
                 <p className="text-sm text-muted-foreground">Obsidian AI</p>
                 <p className="font-semibold">Dashboard</p>
@@ -91,7 +91,6 @@ export function DashboardShell({ user, children }: DashboardShellProps) {
               </div>
             </div>
 
-            <DashboardHeader onCreateProject={() => setDialogOpen(true)} />
             {children}
           </div>
 

@@ -1,11 +1,16 @@
 import type { Metadata } from "next";
-import { Geist_Mono, Public_Sans, DM_Sans } from "next/font/google";
+import { Bricolage_Grotesque, Geist_Mono, DM_Sans } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { ThemeProvider } from "@/components/layout/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 
-const dmSans = DM_Sans({subsets:['latin'],variable:'--font-sans'});
+const dmSans = DM_Sans({ subsets: ["latin"], variable: "--font-sans" });
+
+const bricolageGrotesque = Bricolage_Grotesque({
+  subsets: ["latin"],
+  variable: "--font-display",
+});
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
@@ -34,6 +39,7 @@ export default function RootLayout({
         "h-full",
         "antialiased",
         dmSans.variable,
+        bricolageGrotesque.variable,
         geistMono.variable,
         "font-sans",
       )}

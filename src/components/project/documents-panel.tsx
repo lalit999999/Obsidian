@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Upload } from "lucide-react";
+import { FileStack, PanelRightClose, Upload } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,12 +14,16 @@ interface DocumentsPanelProps {
   documents: Document[];
   onUploadDocument: (file: File) => Promise<void> | void;
   onDeleteDocument: (documentId: string) => Promise<void> | void;
+  onPreviewDocument?: (documentId: string) => void;
+  onCollapse?: () => void;
 }
 
 export function DocumentsPanel({
   documents,
   onUploadDocument,
   onDeleteDocument,
+  onPreviewDocument,
+  onCollapse,
 }: DocumentsPanelProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -46,31 +50,43 @@ export function DocumentsPanel({
   };
 
   return (
-    <Card className="flex h-full min-h-0 flex-col overflow-hidden border-border/80 bg-card/90">
-      <div className="flex shrink-0 items-center justify-between gap-3 border-b px-4 py-4">
-        <div>
-          <p className="text-sm text-muted-foreground">Documents</p>
-          <h3 className="text-lg font-semibold">Knowledge sources</h3>
+    <Card className="flex h-full min-h-0 flex-col gap-0 overflow-hidden border-border/80 bg-card/90 py-0">
+      <div className="flex h-12 shrink-0 items-center gap-2 border-b px-3">
+        <FileStack className="size-4 text-muted-foreground" />
+        <h3 className="text-sm font-medium">Sources</h3>
+        <div className="ml-auto flex items-center gap-1">
+          <Button size="sm" onClick={() => setDialogOpen(true)}>
+            <Upload className="size-3.5" />
+            Upload
+          </Button>
+          {onCollapse ? (
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className="hidden lg:flex"
+              aria-label="Collapse sources panel"
+              onClick={onCollapse}
+            >
+              <PanelRightClose className="size-4" />
+            </Button>
+          ) : null}
         </div>
-        <Button size="sm" onClick={() => setDialogOpen(true)}>
-          <Upload className="size-4" />
-          Upload
-        </Button>
       </div>
       <ScrollArea className="min-h-0 flex-1">
-        <div className="space-y-3 p-3">
+        <div className="space-y-1 p-2">
           {documents.length ? (
             documents.map((document) => (
               <DocumentItem
                 key={document.id}
                 {...document}
                 onDelete={onDeleteDocument}
+                onPreview={onPreviewDocument}
               />
             ))
           ) : (
-            <div className="rounded-3xl border border-dashed p-6 text-center text-sm text-muted-foreground">
-              No documents uploaded yet. Use the upload button to add your first
-              note.
+            <div className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
+              No documents uploaded yet. Use the upload button to add your
+              first note.
             </div>
           )}
         </div>

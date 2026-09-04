@@ -1,7 +1,6 @@
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 
-import { ProjectHeader } from "@/components/project/project-header";
 import { ProjectWorkspace } from "@/components/project/project-workspace";
 import { ProjectWorkspaceSkeleton } from "@/components/project/project-workspace-skeleton";
 import { requireCurrentUser } from "@/lib/auth";
@@ -63,20 +62,13 @@ async function ProjectContent({
   const project = serializeProject(projectRecord);
 
   return (
-    <div className="flex h-full min-h-0 flex-col gap-4">
-      <div className="shrink-0">
-        <ProjectHeader project={project} />
-      </div>
-      <div className="min-h-0 flex-1">
-        <ProjectWorkspace
-          project={project}
-          initialChats={chatRecords.map(serializeChat)}
-          initialDocuments={documentRecords.map(serializeDocument)}
-          initialActiveChatId={activeChatId}
-          initialMessages={messageRecords.map(serializeMessage)}
-        />
-      </div>
-    </div>
+    <ProjectWorkspace
+      project={project}
+      initialChats={chatRecords.map(serializeChat)}
+      initialDocuments={documentRecords.map(serializeDocument)}
+      initialActiveChatId={activeChatId}
+      initialMessages={messageRecords.map(serializeMessage)}
+    />
   );
 }
 
@@ -91,7 +83,7 @@ export default async function ProjectPage({
   const currentUser = await requireCurrentUser();
 
   return (
-    <main className="mx-auto flex h-dvh max-w-7xl flex-col gap-4 overflow-hidden px-4 py-4 sm:px-6 lg:px-8">
+    <main className="flex h-dvh w-full flex-col overflow-hidden p-3">
       <Suspense fallback={<ProjectWorkspaceSkeleton />}>
         <ProjectContent
           projectId={projectId}

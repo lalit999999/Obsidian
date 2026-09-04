@@ -1,10 +1,30 @@
 import { NextRequest } from "next/server";
 
-import { deleteDocumentAction } from "@/actions/document/document";
+import {
+  deleteDocumentAction,
+  getDocumentContentAction,
+} from "@/actions/document/document";
 import { handleRouteError, jsonSuccess } from "@/lib/http";
+import { serializeDocument } from "@/lib/serializers";
 
 interface RouteParams {
   params: Promise<{ documentId: string }>;
+}
+
+export async function GET(_: NextRequest, { params }: RouteParams) {
+  try {
+    const { documentId } = await params;
+    const { document, content, truncated } =
+      await getDocumentContentAction(documentId);
+
+    return jsonSuccess({
+      document: serializeDocument(document),
+      content,
+      truncated,
+    });
+  } catch (error) {
+    return handleRouteError(error);
+  }
 }
 
 export async function DELETE(_: NextRequest, { params }: RouteParams) {

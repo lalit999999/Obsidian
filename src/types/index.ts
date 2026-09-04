@@ -33,6 +33,7 @@ export interface Document {
   fileName: string;
   fileSize: number;
   mimeType: string;
+  cloudinaryUrl: string;
   status: DocumentStatus;
   error?: string | null;
   chunkCount: number;

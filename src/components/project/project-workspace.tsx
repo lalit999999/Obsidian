@@ -1,23 +1,21 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { PanelLeft, PanelRight } from "lucide-react";
+import { PanelLeftOpen, PanelRightOpen } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import {
   Sheet,
   SheetContent,
   SheetHeader,
   SheetTitle,
-  SheetTrigger,
 } from "@/components/ui/sheet";
-import { Spinner } from "@/components/ui/spinner";
 import type { Chat, Document, Message, Project } from "@/types";
 import type { SendMessageResponse } from "@/types/chat";
 import { ChatContainer } from "@/components/chat/chat-container";
+import { ProjectHeader } from "./project-header";
 import { ChatSidebar } from "./chat-sidebar";
 import { DocumentsPanel } from "./documents-panel";
+import { DocumentPreviewDialog } from "./document-preview-dialog";
 
 interface ProjectWorkspaceProps {
   project: Project;
@@ -49,6 +47,11 @@ export function ProjectWorkspace({
   const [isCreatingChat, setIsCreatingChat] = useState(false);
   const [isSendingMessage, setIsSendingMessage] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
+  const [leftCollapsed, setLeftCollapsed] = useState(false);
+  const [rightCollapsed, setRightCollapsed] = useState(false);
+  const [previewDocumentId, setPreviewDocumentId] = useState<string | null>(
+    null,
+  );
 
   useEffect(() => {
     setChats(initialChats);
@@ -302,6 +305,9 @@ export function ProjectWorkspace({
     setDocuments((current) =>
       current.filter((document) => document.id !== documentId),
     );
+    setPreviewDocumentId((current) =>
+      current === documentId ? null : current,
+    );
   };
 
   const handleChatTitleChange = (chatId: string, title: string) => {
@@ -318,108 +324,150 @@ export function ProjectWorkspace({
     );
   };
 
-  return (
-    <div className="flex h-full min-h-0 flex-col gap-4 lg:flex-row">
-      <div className="hidden min-h-0 shrink-0 lg:block lg:w-80">
-        <ChatSidebar
-          chats={chats}
-          activeChatId={activeChat?.id ?? null}
-          onSelectChat={selectChat}
-          onCreateChat={createChat}
-          onRenameChat={renameChat}
-          onDeleteChat={deleteChat}
-        />
-      </div>
+  const previewDocument = documents.find(
+    (document) => document.id === previewDocumentId,
+  );
 
-      <div className="flex min-h-0 flex-1 flex-col gap-4">
-        <div className="flex shrink-0 items-center justify-between gap-3 rounded-3xl border bg-card/90 px-4 py-3 lg:hidden">
-          <div>
-            <p className="text-sm text-muted-foreground">Workspace panels</p>
-            <p className="font-medium"></p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Sheet open={mobileChatsOpen} onOpenChange={setMobileChatsOpen}>
-              <SheetTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <PanelLeft className="size-4" />
-                  Chats
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="w-[min(22rem,100vw)] p-4">
-                <SheetHeader>
-                  <SheetTitle>Chats</SheetTitle>
-                </SheetHeader>
-                <div className="mt-4 h-[calc(100dvh-6rem)] min-h-0">
-                  <ChatSidebar
-                    chats={chats}
-                    activeChatId={activeChat?.id ?? null}
-                    onSelectChat={(chatId) => {
-                      selectChat(chatId);
-                      setMobileChatsOpen(false);
-                    }}
-                    onCreateChat={createChat}
-                    onRenameChat={renameChat}
-                    onDeleteChat={deleteChat}
-                  />
-                </div>
-              </SheetContent>
-            </Sheet>
-            <Sheet open={mobileDocsOpen} onOpenChange={setMobileDocsOpen}>
-              <SheetTrigger asChild>
-                <Button variant="outline" size="sm">
-                  <PanelRight className="size-4" />
-                  Docs
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="right" className="w-[min(22rem,100vw)] p-4">
-                <SheetHeader>
-                  <SheetTitle>Documents</SheetTitle>
-                </SheetHeader>
-                <div className="mt-4 h-[calc(100dvh-6rem)] min-h-0">
-                  <DocumentsPanel
-                    documents={documents}
-                    onUploadDocument={uploadDocument}
-                    onDeleteDocument={deleteDocument}
-                  />
-                </div>
-              </SheetContent>
-            </Sheet>
-          </div>
+  return (
+    <div className="flex h-full min-h-0 w-full flex-col gap-3">
+      <ProjectHeader
+        project={project}
+        onOpenChats={() => setMobileChatsOpen(true)}
+        onOpenDocuments={() => setMobileDocsOpen(true)}
+      />
+
+      <div className="flex h-full min-h-0 gap-3">
+        <div
+          className={
+            "hidden min-h-0 shrink-0 overflow-hidden transition-[width] duration-200 motion-reduce:transition-none lg:block " +
+            (leftCollapsed ? "w-9" : "w-65")
+          }
+        >
+          {leftCollapsed ? (
+            <button
+              type="button"
+              onClick={() => setLeftCollapsed(false)}
+              aria-label="Expand chats panel"
+              className="flex h-full w-9 items-center justify-center rounded-lg border bg-card/60 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+            >
+              <PanelLeftOpen className="size-4" />
+            </button>
+          ) : (
+            <div className="h-full min-h-0 w-65">
+              <ChatSidebar
+                chats={chats}
+                activeChatId={activeChat?.id ?? null}
+                onSelectChat={(chatId) => {
+                  selectChat(chatId);
+                }}
+                onCreateChat={createChat}
+                onRenameChat={renameChat}
+                onDeleteChat={deleteChat}
+                onCollapse={() => setLeftCollapsed(true)}
+              />
+            </div>
+          )}
         </div>
 
-        {messagesError ? (
-          <p className="shrink-0 text-sm text-destructive">{messagesError}</p>
-        ) : null}
+        <div className="min-h-0 min-w-0 flex-1">
+          <ChatContainer
+            activeChat={activeChat}
+            messages={activeMessages}
+            key={activeChat?.id ?? "no-chat"}
+            isSending={isSendingMessage}
+            isLoadingMessages={isLoadingMessages}
+            messagesError={messagesError}
+            onDismissMessagesError={() => setMessagesError(null)}
+            error={sendError}
+            onSendMessage={sendMessage}
+            onOpenChats={() => setMobileChatsOpen(true)}
+            onOpenDocuments={() => setMobileDocsOpen(true)}
+            onOpenSource={(documentId) => setPreviewDocumentId(documentId)}
+            disabled={!activeChat && !canCreateChat}
+          />
+        </div>
 
-        {isLoadingMessages ? (
-          <Card className="flex min-h-0 flex-1 flex-col items-center justify-center gap-3 border-border/80 bg-card/90 text-sm text-muted-foreground">
-            <Spinner className="size-6" />
-            Loading conversation…
-          </Card>
-        ) : (
-          <div className="min-h-0 flex-1">
-            <ChatContainer
-              activeChat={activeChat}
-              messages={activeMessages}
-              key={activeChat?.id ?? "no-chat"}
-              isSending={isSendingMessage}
-              error={sendError}
-              onSendMessage={sendMessage}
-              onOpenChats={() => setMobileChatsOpen(true)}
-              onOpenDocuments={() => setMobileDocsOpen(true)}
-              disabled={!activeChat && !canCreateChat}
+        <div
+          className={
+            "hidden min-h-0 shrink-0 overflow-hidden transition-[width] duration-200 motion-reduce:transition-none lg:block " +
+            (rightCollapsed ? "w-9" : "w-75")
+          }
+        >
+          {rightCollapsed ? (
+            <button
+              type="button"
+              onClick={() => setRightCollapsed(false)}
+              aria-label="Expand sources panel"
+              className="flex h-full w-9 items-center justify-center rounded-lg border bg-card/60 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+            >
+              <PanelRightOpen className="size-4" />
+            </button>
+          ) : (
+            <div className="h-full min-h-0 w-75">
+              <DocumentsPanel
+                documents={documents}
+                onUploadDocument={uploadDocument}
+                onDeleteDocument={deleteDocument}
+                onPreviewDocument={(documentId) =>
+                  setPreviewDocumentId(documentId)
+                }
+                onCollapse={() => setRightCollapsed(true)}
+              />
+            </div>
+          )}
+        </div>
+      </div>
+
+      <Sheet open={mobileChatsOpen} onOpenChange={setMobileChatsOpen}>
+        <SheetContent side="left" className="w-[min(22rem,100vw)] p-4">
+          <SheetHeader>
+            <SheetTitle>Chats</SheetTitle>
+          </SheetHeader>
+          <div className="mt-4 h-[calc(100dvh-6rem)] min-h-0">
+            <ChatSidebar
+              chats={chats}
+              activeChatId={activeChat?.id ?? null}
+              onSelectChat={(chatId) => {
+                selectChat(chatId);
+                setMobileChatsOpen(false);
+              }}
+              onCreateChat={createChat}
+              onRenameChat={renameChat}
+              onDeleteChat={deleteChat}
             />
           </div>
-        )}
-      </div>
+        </SheetContent>
+      </Sheet>
 
-      <div className="hidden min-h-0 shrink-0 lg:block lg:w-85">
-        <DocumentsPanel
-          documents={documents}
-          onUploadDocument={uploadDocument}
-          onDeleteDocument={deleteDocument}
-        />
-      </div>
+      <Sheet open={mobileDocsOpen} onOpenChange={setMobileDocsOpen}>
+        <SheetContent side="right" className="w-[min(22rem,100vw)] p-4">
+          <SheetHeader>
+            <SheetTitle>Documents</SheetTitle>
+          </SheetHeader>
+          <div className="mt-4 h-[calc(100dvh-6rem)] min-h-0">
+            <DocumentsPanel
+              documents={documents}
+              onUploadDocument={uploadDocument}
+              onDeleteDocument={deleteDocument}
+              onPreviewDocument={(documentId) => {
+                setPreviewDocumentId(documentId);
+                setMobileDocsOpen(false);
+              }}
+            />
+          </div>
+        </SheetContent>
+      </Sheet>
+
+      <DocumentPreviewDialog
+        document={previewDocument ?? null}
+        open={previewDocumentId !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPreviewDocumentId(null);
+          }
+        }}
+        onDelete={deleteDocument}
+      />
     </div>
   );
 }

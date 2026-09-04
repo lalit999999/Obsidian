@@ -46,34 +46,3 @@ export async function getOwnedDocument(documentId: string, userId: string) {
 
   return document;
 }
-/**
- * OWNERSHIP VALIDATION
- *
- * Centralize authorization checks.
- *
- * Implement reusable helpers such as:
- *
- * getOwnedProject(projectId, userId)
- * getOwnedChat(chatId, userId)
- * getOwnedDocument(documentId, userId)
- *
- * Each helper should:
- * - Query the resource.
- * - Verify ownership.
- * - Return the resource when authorized.
- * - Return/throw a controlled not-found or forbidden error
- *   when unauthorized.
- *
- * Security principle:
- *
- * Never rely only on a client-provided ID.
- *
- * Every protected resource access must be scoped to the
- * authenticated user.
- *
- * Prefer queries that combine:
- *
- * resourceId + userId
- *
- * where possible.
- */

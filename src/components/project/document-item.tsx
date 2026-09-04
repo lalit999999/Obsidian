@@ -1,19 +1,19 @@
-import {
-  CircleAlert,
-  File,
-  FileCode2,
-  FileText,
-  LoaderCircle,
-  MoreVertical,
-  Pencil,
-  Trash2,
-  Clock3,
-} from "lucide-react";
+"use client";
 
-import { Badge } from "@/components/ui/badge";
+import { useState } from "react";
+import { Download, Eye, File, FileCode2, FileText, MoreVertical, Trash2 } from "lucide-react";
+
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import type { Document, DocumentStatus } from "@/types";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,51 +21,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { formatBytes } from "@/lib/format";
+import type { Document } from "@/types";
+import { DocumentStatusBadge } from "./document-status-badge";
 
 interface DocumentItemProps extends Document {
   onDelete?: (documentId: string) => Promise<void> | void;
-}
-
-function formatBytes(bytes: number) {
-  if (bytes < 1024) {
-    return `${bytes} B`;
-  }
-
-  const kilobytes = bytes / 1024;
-  if (kilobytes < 1024) {
-    return `${kilobytes.toFixed(1)} KB`;
-  }
-
-  return `${(kilobytes / 1024).toFixed(1)} MB`;
-}
-
-function getStatusConfig(status: DocumentStatus) {
-  switch (status) {
-    case "PENDING":
-      return {
-        label: "Pending",
-        className: "bg-secondary text-secondary-foreground",
-        icon: Clock3,
-      };
-    case "PROCESSING":
-      return {
-        label: "Processing",
-        className: "bg-primary/10 text-primary",
-        icon: LoaderCircle,
-      };
-    case "READY":
-      return {
-        label: "Ready",
-        className: "bg-emerald-500/10 text-emerald-700 dark:text-emerald-400",
-        icon: FileText,
-      };
-    case "FAILED":
-      return {
-        label: "Failed",
-        className: "bg-destructive/10 text-destructive",
-        icon: CircleAlert,
-      };
-  }
+  onPreview?: (documentId: string) => void;
 }
 
 function getFileIcon(fileName: string) {
@@ -84,64 +46,104 @@ export function DocumentItem({
   id,
   fileName,
   fileSize,
+  cloudinaryUrl,
   status,
   createdAt,
   error,
   onDelete,
+  onPreview,
 }: DocumentItemProps) {
-  const statusConfig = getStatusConfig(status);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
   const FileIcon = getFileIcon(fileName);
-  const StatusIcon = statusConfig.icon;
+
+  const handleDelete = async () => {
+    setIsDeleting(true);
+    try {
+      await onDelete?.(id);
+      setDeleteOpen(false);
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   return (
-    <div className="flex items-start justify-between gap-3 rounded-2xl border bg-background px-3 py-3">
-      <div className="flex min-w-0 flex-1 items-start gap-3">
-        <div className="mt-0.5 flex size-10 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-          <FileIcon className="size-4" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center gap-2">
-            <p className="truncate text-sm font-medium">{fileName}</p>
-            <Badge className={cn("rounded-full", statusConfig.className)}>
-              <StatusIcon
-                className={cn(
-                  "mr-1 size-3.5",
-                  status === "PROCESSING" ? "animate-spin" : undefined,
-                )}
-              />
-              {statusConfig.label}
-            </Badge>
-          </div>
-          <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted-foreground">
-            <span>{formatBytes(fileSize)}</span>
-            <span>Created {new Date(createdAt).toLocaleDateString()}</span>
-          </div>
-          {error ? (
-            <p className="mt-2 text-xs text-destructive">{error}</p>
-          ) : null}
-        </div>
+    <div className="group relative flex items-center gap-3 rounded-md px-3 py-2.5 transition-colors hover:bg-muted/50">
+      <button
+        type="button"
+        onClick={() => onPreview?.(id)}
+        aria-label={`Open preview for ${fileName}`}
+        className="absolute inset-0 rounded-md transition-transform active:scale-[0.995] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 motion-reduce:active:scale-100"
+      />
+
+      <div className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+        <FileIcon className="size-4" />
       </div>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="ghost" size="icon-sm">
-            <MoreVertical className="size-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem>
-            <Pencil className="mr-2 size-4" />
-            View details
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            className="text-destructive focus:text-destructive"
-            onClick={() => onDelete?.(id)}
-          >
-            <Trash2 className="mr-2 size-4" />
-            Delete
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-2">
+          <p className="truncate text-sm font-medium">{fileName}</p>
+          <DocumentStatusBadge status={status} />
+        </div>
+        <div className="mt-0.5 flex flex-wrap gap-x-1.5 text-xs text-muted-foreground">
+          <span>{formatBytes(fileSize)}</span>
+          <span>·</span>
+          <span>{new Date(createdAt).toLocaleDateString()}</span>
+        </div>
+        {error ? <p className="mt-1 text-xs text-destructive">{error}</p> : null}
+      </div>
+
+      <div className="relative z-10 shrink-0">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon-sm" aria-label="Document actions">
+              <MoreVertical className="size-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => onPreview?.(id)}>
+              <Eye className="mr-2 size-4" />
+              Open preview
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <a href={cloudinaryUrl} download={fileName}>
+                <Download className="mr-2 size-4" />
+                Download
+              </a>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              variant="destructive"
+              onClick={() => setDeleteOpen(true)}
+            >
+              <Trash2 className="mr-2 size-4" />
+              Delete
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this document?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {fileName} and its indexed chunks will be permanently removed.
+              This cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              disabled={isDeleting}
+              onClick={handleDelete}
+            >
+              {isDeleting ? "Deleting…" : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

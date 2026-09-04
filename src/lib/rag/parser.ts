@@ -1,4 +1,7 @@
-import type { SupportedRagFileExtension } from "@/types/rag";
+// TODO(Session A): SupportedRagFileExtension was removed from src/types/rag.ts
+// per the shared contract (C5) — this local alias is a compile-only stand-in
+// so the existing txt/md path keeps working until the multi-format parser lands.
+type SupportedRagFileExtension = "txt" | "md";
 
 const SUPPORTED_EXTENSIONS = new Set<SupportedRagFileExtension>(["txt", "md"]);
 

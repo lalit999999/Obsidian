@@ -10,6 +10,7 @@ export async function ingestDocument({
   projectId,
   userId,
   fileName,
+  sourceKind,
   content,
 }: IngestionInput): Promise<IngestionResult> {
   if (!documentId || typeof documentId !== "string") {
@@ -56,14 +57,12 @@ export async function ingestDocument({
       projectId,
       documentId,
       fileName,
+      sourceKind,
     },
   });
 
   return {
     documentId,
-    projectId,
-    userId,
-    fileName,
     chunkCount: chunks.length,
   };
 }

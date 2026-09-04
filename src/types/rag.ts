@@ -1,14 +1,18 @@
-export interface IngestionInput {
-  documentId: string;
-  projectId: string;
-  userId: string;
-  fileName: string;
-  content: string;
-}
+export type SourceKindValue =
+  | "TEXT"
+  | "MARKDOWN"
+  | "PDF"
+  | "DOCX"
+  | "RTF"
+  | "ODT"
+  | "IMAGE";
+
+export type PreviewKindValue = "MARKDOWN" | "PLAIN" | "PDF" | "IMAGE";
 
 export interface TextChunk {
   content: string;
   chunkIndex: number;
+  page?: number;
 }
 
 export interface QdrantPayload {
@@ -16,14 +20,32 @@ export interface QdrantPayload {
   projectId: string;
   documentId: string;
   fileName: string;
+  sourceKind: SourceKindValue;
   chunkIndex: number;
   content: string;
+  page?: number;
+}
+
+export interface IngestionInput {
+  documentId: string;
+  projectId: string;
+  userId: string;
+  fileName: string;
+  sourceKind: SourceKindValue;
+  content: string;
+  pages?: string[];
+}
+
+export interface IngestionResult {
+  documentId: string;
+  chunkCount: number;
 }
 
 export interface RetrievalInput {
   query: string;
   projectId: string;
   userId: string;
+  documentIds?: string[];
   limit?: number;
 }
 
@@ -33,14 +55,7 @@ export interface RetrievedChunkResult {
   documentId: string;
   fileName: string;
   chunkIndex: number;
-}
-
-export interface IngestionResult {
-  documentId: string;
-  projectId: string;
-  userId: string;
-  fileName: string;
-  chunkCount: number;
+  page?: number;
 }
 
 export interface StoreDocumentVectorsInput {
@@ -51,6 +66,7 @@ export interface StoreDocumentVectorsInput {
     projectId: string;
     documentId: string;
     fileName: string;
+    sourceKind: SourceKindValue;
   };
 }
 
@@ -58,7 +74,6 @@ export interface SearchSimilarChunksInput {
   queryEmbedding: number[];
   userId: string;
   projectId: string;
+  documentIds?: string[];
   limit?: number;
 }
-
-export type SupportedRagFileExtension = "txt" | "md";

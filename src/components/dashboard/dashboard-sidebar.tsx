@@ -173,16 +173,6 @@ export function DashboardSidebar({ user, forceVisible }: DashboardSidebarProps) 
 
   return (
     <>
-      {forceVisible ? null : (
-        <script
-          // Applies the persisted width before hydration so there is no flash of the default width.
-          dangerouslySetInnerHTML={{
-            __html: `(function(){try{var w=localStorage.getItem(${JSON.stringify(
-              STORAGE_KEY,
-            )});if(!w)return;var el=document.getElementById(${JSON.stringify(asideId)});if(!el)return;if(w==="collapsed"){el.style.width="${COLLAPSED_WIDTH}px";return;}var n=parseInt(w,10);if(!isFinite(n))return;var max=Math.max(window.innerWidth*${MAX_WIDTH_RATIO},${MIN_WIDTH});var clamped=Math.min(Math.max(n,${MIN_WIDTH}),max);el.style.width=clamped+"px";})();`,
-          }}
-        />
-      )}
       <aside
         id={forceVisible ? undefined : asideId}
         ref={forceVisible ? undefined : asideRef}

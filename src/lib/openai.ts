@@ -2,8 +2,7 @@ import OpenAI from "openai";
 
 const apikey = process.env.OPENAI_API_KEY;
 const baseURL = process.env.OPENAI_BASE_URL || undefined;
-const embeddingBaseURL =
-  process.env.OPENAI_EMBEDDING_BASE_URL || process.env.OPENAI_BASE_URL || undefined;
+const embeddingBaseURL = process.env.OPENAI_EMBEDDING_BASE_URL || undefined;
 
 if (!apikey) {
   console.warn(
@@ -33,8 +32,9 @@ export const openaiClient = apikey
 
 // OpenRouter (a common OPENAI_BASE_URL value) has no /v1/embeddings endpoint,
 // so embeddings need their own client pointed at an OpenAI-compatible
-// embeddings API. Defaults to OPENAI_EMBEDDING_BASE_URL, falling back to
-// OPENAI_BASE_URL, then the official OpenAI API.
+// embeddings API. Uses OPENAI_EMBEDDING_BASE_URL if set, otherwise the
+// official OpenAI API — it does NOT fall back to OPENAI_BASE_URL, since that
+// is often an OpenRouter (or similar chat-only) endpoint.
 export const openaiEmbeddingClient = apikey
   ? new OpenAI({
       apiKey: apikey,

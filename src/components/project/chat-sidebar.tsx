@@ -72,12 +72,19 @@ export function ChatSidebar({
             const active = chat.id === activeChatId;
 
             return (
-              <button
+              <div
                 key={chat.id}
-                type="button"
+                role="button"
+                tabIndex={0}
                 onClick={() => onSelectChat(chat.id)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    onSelectChat(chat.id);
+                  }
+                }}
                 className={cn(
-                  "flex w-full items-start justify-between gap-3 rounded-2xl border px-3 py-3 text-left transition-colors",
+                  "flex w-full cursor-pointer items-start justify-between gap-3 rounded-2xl border px-3 py-3 text-left transition-colors",
                   active
                     ? "border-primary/20 bg-primary/10"
                     : "bg-background hover:bg-muted",
@@ -126,7 +133,7 @@ export function ChatSidebar({
                     </DropdownMenuItem>
                   </DropdownMenuContent>
                 </DropdownMenu>
-              </button>
+              </div>
             );
           })}
         </div>

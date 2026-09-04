@@ -128,7 +128,7 @@ export async function searchSimilarChunks({
     });
   } catch (error) {
     console.error("[qdrant] query failed:", error);
-    throw error;
+    return [];
   }
 
   return response.points.map((point) => {

@@ -1,3 +1,4 @@
+import { ensureKnowledgeBaseCollection } from "@/lib/rag/collection";
 import { RAG_DEFAULT_RETRIEVAL_LIMIT } from "@/lib/rag/constants";
 import { generateEmbeddings } from "@/lib/rag/embeddings";
 import { searchSimilarChunks } from "@/lib/rag/qdrant-store";
@@ -25,6 +26,8 @@ export async function retrieveRelevantChunks({
   if (!projectId || typeof projectId !== "string") {
     throw new Error("A valid projectId is required.");
   }
+
+  await ensureKnowledgeBaseCollection();
 
   const [queryEmbedding] = await generateEmbeddings([trimmedQuery]);
 

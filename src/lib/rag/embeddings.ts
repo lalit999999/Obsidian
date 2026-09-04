@@ -1,4 +1,4 @@
-import { openaiClient } from "@/lib/openai";
+import { openaiEmbeddingClient } from "@/lib/openai";
 import {
   RAG_EMBEDDING_BATCH_SIZE,
   RAG_EMBEDDING_DIMENSIONS,
@@ -52,7 +52,7 @@ export async function generateEmbeddings(texts: string[]): Promise<number[][]> {
     const batch = validTexts.slice(i, i + RAG_EMBEDDING_BATCH_SIZE);
 
     try {
-      const response = await openaiClient.embeddings.create({
+      const response = await openaiEmbeddingClient.embeddings.create({
         model: RAG_EMBEDDING_MODEL,
         input: batch,
       });

@@ -14,6 +14,7 @@ const REQUIRED_VARS = [
 const OPTIONAL_VARS = [
   "QDRANT_API_KEY",
   "OPENAI_BASE_URL",
+  "OPENAI_EMBEDDING_BASE_URL",
   "OPENAI_CHAT_MODEL",
   "OPENAI_EMBEDDING_MODEL",
 ] as const;
@@ -61,6 +62,9 @@ export const env = {
   },
   get OPENAI_BASE_URL() {
     return optionalEnv("OPENAI_BASE_URL");
+  },
+  get OPENAI_EMBEDDING_BASE_URL() {
+    return optionalEnv("OPENAI_EMBEDDING_BASE_URL");
   },
   get OPENAI_CHAT_MODEL() {
     return optionalEnv("OPENAI_CHAT_MODEL");

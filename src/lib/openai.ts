@@ -2,6 +2,8 @@ import OpenAI from "openai";
 
 const apikey = process.env.OPENAI_API_KEY;
 const baseURL = process.env.OPENAI_BASE_URL || undefined;
+const embeddingBaseURL =
+  process.env.OPENAI_EMBEDDING_BASE_URL || process.env.OPENAI_BASE_URL || undefined;
 
 if (!apikey) {
   console.warn(
@@ -26,6 +28,17 @@ export const openaiClient = apikey
   ? new OpenAI({
       apiKey: apikey,
       baseURL,
+    })
+  : createMissingApiKeyClient();
+
+// OpenRouter (a common OPENAI_BASE_URL value) has no /v1/embeddings endpoint,
+// so embeddings need their own client pointed at an OpenAI-compatible
+// embeddings API. Defaults to OPENAI_EMBEDDING_BASE_URL, falling back to
+// OPENAI_BASE_URL, then the official OpenAI API.
+export const openaiEmbeddingClient = apikey
+  ? new OpenAI({
+      apiKey: apikey,
+      baseURL: embeddingBaseURL,
     })
   : createMissingApiKeyClient();
 

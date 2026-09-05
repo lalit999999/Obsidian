@@ -1,9 +1,17 @@
 import { ValidationError } from "@/lib/errors";
+import {
+  isLegacyDocFile,
+  lookupSourceType,
+  supportedFormatsList,
+} from "@/lib/documents/registry";
+import type { RegistryMatch } from "@/lib/documents/types";
 
 export const MAX_PROJECT_NAME_LENGTH = 120;
 export const MAX_PROJECT_DESCRIPTION_LENGTH = 500;
 export const MAX_CHAT_TITLE_LENGTH = 120;
 export const MAX_CHAT_MESSAGE_LENGTH = 5000;
+export const MAX_TEXT_SOURCE_LENGTH = 200_000;
+export const MAX_TEXT_SOURCE_TITLE_LENGTH = 120;
 
 function normalizeOptionalString(value: unknown): string | undefined {
   if (value === undefined || value === null) {
@@ -163,10 +171,62 @@ export function parseChatMessageInput(input: unknown): ChatMessageInput {
   return { content };
 }
 
-export function validateSupportedDocumentFile(fileName: string): boolean {
-  const extension = fileName.split(".").pop()?.toLowerCase();
-  return extension === "md" || extension === "txt";
+export interface TextSourceInput {
+  text: string;
+  title: string;
 }
+
+export function parseTextSourceInput(formData: FormData): TextSourceInput {
+  const rawText = formData.get("text");
+  if (typeof rawText !== "string" || !rawText.trim()) {
+    throw new ValidationError("Text content is required.");
+  }
+
+  const text = rawText.trim();
+  if (text.length > MAX_TEXT_SOURCE_LENGTH) {
+    throw new ValidationError(
+      `Text content must be ${MAX_TEXT_SOURCE_LENGTH.toLocaleString()} characters or less.`,
+    );
+  }
+
+  const rawTitle = formData.get("title");
+  let title = "Untitled note";
+  if (typeof rawTitle === "string" && rawTitle.trim()) {
+    title = rawTitle.trim();
+    if (title.length > MAX_TEXT_SOURCE_TITLE_LENGTH) {
+      throw new ValidationError(
+        `Title must be ${MAX_TEXT_SOURCE_TITLE_LENGTH} characters or less.`,
+      );
+    }
+  }
+
+  return { text, title };
+}
+
+export function validateUploadedFile(file: File): RegistryMatch {
+  if (isLegacyDocFile(file.name)) {
+    throw new ValidationError(
+      "Legacy .doc files are not supported. Save the file as .docx and upload again.",
+    );
+  }
+
+  const match = lookupSourceType(file.name, file.type);
+  if (!match) {
+    throw new ValidationError(
+      `Unsupported file type. Supported formats: ${supportedFormatsList().join(", ")}.`,
+    );
+  }
+
+  if (file.size > match.maxBytes) {
+    const maxMb = (match.maxBytes / (1024 * 1024)).toFixed(0);
+    throw new ValidationError(
+      `${file.name} is too large. ${match.label} uploads are limited to ${maxMb} MB.`,
+    );
+  }
+
+  return match;
+}
+
 /**
  * INPUT VALIDATION
  *

@@ -82,8 +82,10 @@ export async function storeDocumentVectors({
         projectId: metadata.projectId,
         documentId: metadata.documentId,
         fileName: metadata.fileName,
+        sourceKind: metadata.sourceKind,
         chunkIndex: chunk.chunkIndex,
         content: chunk.content,
+        ...(chunk.page !== undefined ? { page: chunk.page } : {}),
       },
     };
   });
@@ -103,6 +105,7 @@ export async function searchSimilarChunks({
   queryEmbedding,
   userId,
   projectId,
+  documentIds,
   limit = RAG_DEFAULT_RETRIEVAL_LIMIT,
 }: SearchSimilarChunksInput): Promise<RetrievedChunkResult[]> {
   if (!Array.isArray(queryEmbedding) || queryEmbedding.length === 0) {
@@ -113,18 +116,22 @@ export async function searchSimilarChunks({
     throw new Error("userId and projectId are required for retrieval.");
   }
 
+  const must: Array<Record<string, unknown>> = [
+    { key: "userId", match: { value: userId } },
+    { key: "projectId", match: { value: projectId } },
+  ];
+
+  if (documentIds && documentIds.length > 0) {
+    must.push({ key: "documentId", match: { any: documentIds } });
+  }
+
   let response;
   try {
     response = await qdrantClient.query(RAG_COLLECTION_NAME, {
       query: queryEmbedding,
       limit,
       with_payload: true,
-      filter: {
-        must: [
-          { key: "userId", match: { value: userId } },
-          { key: "projectId", match: { value: projectId } },
-        ],
-      },
+      filter: { must },
     });
   } catch (error) {
     console.error("[qdrant] query failed:", error);
@@ -133,6 +140,7 @@ export async function searchSimilarChunks({
 
   return response.points.map((point) => {
     const payload = point.payload as Record<string, unknown> | undefined;
+    const page = payload?.page;
 
     return {
       content: String(payload?.content ?? ""),
@@ -140,6 +148,7 @@ export async function searchSimilarChunks({
       documentId: String(payload?.documentId ?? ""),
       fileName: String(payload?.fileName ?? ""),
       chunkIndex: Number(payload?.chunkIndex ?? 0),
+      ...(typeof page === "number" ? { page } : {}),
     };
   });
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import {
   Ellipsis,
@@ -12,7 +12,18 @@ import {
   Trash2,
 } from "lucide-react";
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   DropdownMenu,
@@ -21,6 +32,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { MAX_CHAT_TITLE_LENGTH } from "@/lib/validations";
 import { cn } from "@/lib/utils";
 import type { Chat } from "@/types";
 
@@ -29,7 +41,7 @@ interface ChatSidebarProps {
   activeChatId: string | null;
   onSelectChat: (chatId: string) => void;
   onCreateChat: () => Promise<unknown> | void;
-  onRenameChat?: (chatId: string) => Promise<void> | void;
+  onRenameChat?: (chatId: string, title: string) => Promise<void> | void;
   onDeleteChat?: (chatId: string) => Promise<void> | void;
   onCollapse?: () => void;
 }
@@ -44,6 +56,11 @@ export function ChatSidebar({
   onCollapse,
 }: ChatSidebarProps) {
   const [isCreating, setIsCreating] = useState(false);
+  const [renamingChatId, setRenamingChatId] = useState<string | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  const renameSettledRef = useRef(false);
+  const [deleteTarget, setDeleteTarget] = useState<Chat | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const handleCreateChat = async () => {
     if (isCreating) {
@@ -56,6 +73,46 @@ export function ChatSidebar({
       await onCreateChat();
     } finally {
       setIsCreating(false);
+    }
+  };
+
+  const startRename = (chat: Chat) => {
+    renameSettledRef.current = false;
+    setRenamingChatId(chat.id);
+    setRenameValue(chat.title);
+  };
+
+  const cancelRename = () => {
+    renameSettledRef.current = true;
+    setRenamingChatId(null);
+  };
+
+  const commitRename = (chat: Chat) => {
+    if (renameSettledRef.current) {
+      return;
+    }
+    renameSettledRef.current = true;
+    setRenamingChatId(null);
+
+    const trimmed = renameValue.trim();
+    if (!trimmed || trimmed === chat.title) {
+      return;
+    }
+
+    void onRenameChat?.(chat.id, trimmed);
+  };
+
+  const handleDelete = async () => {
+    if (!deleteTarget) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      await onDeleteChat?.(deleteTarget.id);
+      setDeleteTarget(null);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -95,27 +152,27 @@ export function ChatSidebar({
           ) : null}
           {chats.map((chat) => {
             const active = chat.id === activeChatId;
+            const isRenaming = renamingChatId === chat.id;
 
             return (
               <div
                 key={chat.id}
-                role="button"
-                tabIndex={0}
-                onClick={() => onSelectChat(chat.id)}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" || event.key === " ") {
-                    event.preventDefault();
-                    onSelectChat(chat.id);
-                  }
-                }}
                 className={cn(
-                  "flex w-full cursor-pointer items-start justify-between gap-2 rounded-md px-2.5 py-2 text-left transition-colors",
-                  active
-                    ? "bg-primary/10"
-                    : "hover:bg-muted/50",
+                  "group relative flex w-full items-start justify-between gap-2 rounded-md px-2.5 py-2 transition-colors",
+                  active ? "bg-primary/10" : "hover:bg-muted/50",
                 )}
               >
-                <div className="min-w-0 flex-1">
+                {!isRenaming ? (
+                  <button
+                    type="button"
+                    onClick={() => onSelectChat(chat.id)}
+                    aria-label={`Open chat ${chat.title}`}
+                    aria-current={active ? "true" : undefined}
+                    className="absolute inset-0 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                  />
+                ) : null}
+
+                <div className="relative z-10 min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <MessageSquare
                       className={cn(
@@ -123,47 +180,112 @@ export function ChatSidebar({
                         active ? "text-primary" : "text-muted-foreground",
                       )}
                     />
-                    <p className="truncate text-sm font-medium">{chat.title}</p>
+                    {isRenaming ? (
+                      <Input
+                        autoFocus
+                        value={renameValue}
+                        maxLength={MAX_CHAT_TITLE_LENGTH}
+                        aria-label="Chat title"
+                        onFocus={(event) => event.currentTarget.select()}
+                        onChange={(event) =>
+                          setRenameValue(event.target.value)
+                        }
+                        onClick={(event) => event.stopPropagation()}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter") {
+                            event.preventDefault();
+                            commitRename(chat);
+                          } else if (event.key === "Escape") {
+                            event.preventDefault();
+                            cancelRename();
+                          }
+                        }}
+                        onBlur={() => commitRename(chat)}
+                        className="h-6"
+                      />
+                    ) : (
+                      <p className="truncate text-sm font-medium">
+                        {chat.title}
+                      </p>
+                    )}
                   </div>
-                  <p className="mt-0.5 pl-5.5 text-xs text-muted-foreground">
-                    {new Date(chat.updatedAt).toLocaleDateString()}
-                  </p>
+                  {!isRenaming ? (
+                    <p className="mt-0.5 pl-5.5 text-xs text-muted-foreground">
+                      {new Date(chat.updatedAt).toLocaleDateString()}
+                    </p>
+                  ) : null}
                 </div>
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon-sm"
-                      aria-label="Chat actions"
-                      onClick={(event) => event.stopPropagation()}
-                    >
-                      <Ellipsis className="size-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end">
-                    <DropdownMenuItem
-                      disabled={!onRenameChat}
-                      onClick={() => onRenameChat?.(chat.id)}
-                    >
-                      <Pencil className="mr-2 size-4" />
-                      Rename
-                    </DropdownMenuItem>
-                    <DropdownMenuSeparator />
-                    <DropdownMenuItem
-                      variant="destructive"
-                      disabled={!onDeleteChat}
-                      onClick={() => onDeleteChat?.(chat.id)}
-                    >
-                      <Trash2 className="mr-2 size-4" />
-                      Delete
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
+
+                {!isRenaming ? (
+                  <div className="relative z-10 shrink-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100">
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon-sm"
+                          aria-label="Chat actions"
+                          className="data-[state=open]:opacity-100"
+                          onClick={(event) => event.stopPropagation()}
+                        >
+                          <Ellipsis className="size-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          disabled={!onRenameChat}
+                          onClick={() => startRename(chat)}
+                        >
+                          <Pencil className="mr-2 size-4" />
+                          Rename
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          variant="destructive"
+                          disabled={!onDeleteChat}
+                          onClick={() => setDeleteTarget(chat)}
+                        >
+                          <Trash2 className="mr-2 size-4" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                ) : null}
               </div>
             );
           })}
         </div>
       </ScrollArea>
+
+      <AlertDialog
+        open={deleteTarget !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteTarget(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this chat?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {deleteTarget
+                ? `“${deleteTarget.title}” and all of its messages will be permanently removed. This cannot be undone.`
+                : null}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              disabled={isDeleting}
+              onClick={handleDelete}
+            >
+              {isDeleting ? "Deleting…" : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </aside>
   );
 }

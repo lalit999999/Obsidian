@@ -361,48 +361,68 @@ export function ProjectWorkspace({
     }
   };
 
-  const renameChat = async (chatId: string) => {
-    const currentChat = chats.find((chat) => chat.id === chatId);
-    if (!currentChat) {
-      return;
-    }
-
-    const nextTitle = window.prompt("Rename chat", currentChat.title)?.trim();
-    if (!nextTitle) {
-      return;
-    }
-
-    const response = await fetch(`/api/chats/${chatId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: nextTitle }),
-    });
-
-    const payload = await response.json();
-    if (!response.ok || !payload.success) {
-      throw new Error(payload?.error?.message ?? "Failed to rename chat.");
-    }
-
+  const renameChat = async (chatId: string, title: string) => {
+    const previousChats = chats;
     setChats((current) =>
-      current.map((chat) => (chat.id === chatId ? payload.data.chat : chat)),
+      current.map((chat) => (chat.id === chatId ? { ...chat, title } : chat)),
     );
+
+    try {
+      const response = await fetch(`/api/chats/${chatId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title }),
+      });
+
+      const payload = await response.json();
+      if (!response.ok || !payload.success) {
+        throw new Error(payload?.error?.message ?? "Failed to rename chat.");
+      }
+
+      setChats((current) =>
+        current.map((chat) => (chat.id === chatId ? payload.data.chat : chat)),
+      );
+    } catch (error) {
+      setChats(previousChats);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to rename chat.",
+      );
+    }
   };
 
   const deleteChat = async (chatId: string) => {
-    const response = await fetch(`/api/chats/${chatId}`, { method: "DELETE" });
-    const payload = await response.json();
+    const previousChats = chats;
+    const previousMessagesByChatId = messagesByChatId;
+    const previousActiveChatId = activeChatId;
 
-    if (!response.ok || !payload.success) {
-      throw new Error(payload?.error?.message ?? "Failed to delete chat.");
-    }
-
-    setChats((current) => current.filter((chat) => chat.id !== chatId));
+    const remainingChats = previousChats.filter((chat) => chat.id !== chatId);
+    setChats(remainingChats);
     setMessagesByChatId((current) => {
       const next = { ...current };
       delete next[chatId];
       return next;
     });
-    setActiveChatId((current) => (current === chatId ? null : current));
+    if (previousActiveChatId === chatId) {
+      setActiveChatId(null);
+    }
+
+    try {
+      const response = await fetch(`/api/chats/${chatId}`, {
+        method: "DELETE",
+      });
+      const payload = await response.json();
+
+      if (!response.ok || !payload.success) {
+        throw new Error(payload?.error?.message ?? "Failed to delete chat.");
+      }
+    } catch (error) {
+      setChats(previousChats);
+      setMessagesByChatId(previousMessagesByChatId);
+      setActiveChatId(previousActiveChatId);
+      toast.error(
+        error instanceof Error ? error.message : "Failed to delete chat.",
+      );
+    }
   };
 
   const schedulePersistSelection = (ids: string[]) => {

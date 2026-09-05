@@ -3,7 +3,7 @@ export const RAG_COLLECTION_NAME = "knowledge_base";
 export const RAG_CHUNK_SIZE = 1000;
 export const RAG_CHUNK_OVERLAP = 150;
 
-export const RAG_DEFAULT_RETRIEVAL_LIMIT = 5;
+export const RAG_DEFAULT_RETRIEVAL_LIMIT = 3;
 export const RAG_EMBEDDING_BATCH_SIZE = 8;
 
 export const RAG_EMBEDDING_MODEL =

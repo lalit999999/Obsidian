@@ -1,16 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import {
-  Copy,
-  Download,
-  File,
-  FileCode2,
-  FileText,
-  RotateCcw,
-  Trash2,
-  X,
-} from "lucide-react";
+import { Copy, Download, RotateCcw, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
 import {
@@ -25,18 +16,16 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogTitle,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Markdown } from "@/components/ui/markdown";
 import { formatBytes } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import type { Document } from "@/types";
+import { sourceTypeForKind } from "@/lib/sources/registry";
+import type { Document, SourceKind } from "@/types";
 import { DocumentStatusBadge } from "./document-status-badge";
+import { DocumentPreviewBody } from "./previews/document-preview-body";
+import { PlainPreview } from "./previews/plain-preview";
 
 interface DocumentPreviewDialogProps {
   document: Document | null;
@@ -47,18 +36,20 @@ interface DocumentPreviewDialogProps {
 
 interface PreviewState {
   content: string | null;
+  previewMarkdown: string | null;
   truncated: boolean;
 }
 
-function getFileIcon(fileName: string) {
-  if (fileName.endsWith(".md")) {
-    return FileCode2;
-  }
-  if (fileName.endsWith(".txt")) {
-    return FileText;
-  }
-  return File;
-}
+const TAB_LABELS: Record<SourceKind, { primary: string; secondary: string }> =
+  {
+    TEXT: { primary: "Preview", secondary: "Raw" },
+    MARKDOWN: { primary: "Preview", secondary: "Raw" },
+    RTF: { primary: "Preview", secondary: "Raw" },
+    ODT: { primary: "Preview", secondary: "Raw" },
+    DOCX: { primary: "Preview", secondary: "Raw text" },
+    PDF: { primary: "Document", secondary: "Extracted text" },
+    IMAGE: { primary: "Image", secondary: "Text & analysis" },
+  };
 
 export function DocumentPreviewDialog({
   document,
@@ -74,9 +65,10 @@ export function DocumentPreviewDialog({
   const [refreshKey, setRefreshKey] = useState(0);
 
   const documentId = document?.id ?? null;
+  const isReady = document?.status === "READY";
 
   useEffect(() => {
-    if (!open || !documentId) {
+    if (!open || !documentId || !isReady) {
       return;
     }
 
@@ -99,12 +91,17 @@ export function DocumentPreviewDialog({
             payload?.error?.message ?? "Failed to load document.",
           );
         }
-        return payload.data as { content: string | null; truncated: boolean };
+        return payload.data as {
+          content: string | null;
+          previewMarkdown: string | null;
+          truncated: boolean;
+        };
       })
       .then((data) => {
         if (cancelled) return;
         const state: PreviewState = {
           content: data.content,
+          previewMarkdown: data.previewMarkdown,
           truncated: data.truncated,
         };
         cacheRef.current.set(documentId, state);
@@ -128,7 +125,7 @@ export function DocumentPreviewDialog({
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, documentId, refreshKey]);
+  }, [open, documentId, isReady, refreshKey]);
 
   const handleRetry = () => {
     if (!documentId) return;
@@ -169,16 +166,28 @@ export function DocumentPreviewDialog({
     return null;
   }
 
-  const FileIcon = getFileIcon(document.fileName);
+  const sourceType = sourceTypeForKind(document.sourceKind);
+  const FileIcon = sourceType.icon;
+  const tabLabels = TAB_LABELS[document.sourceKind];
+  const isTallPreview =
+    document.previewKind === "PDF" || document.previewKind === "IMAGE";
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton={false}
-        className="flex h-[85dvh] max-w-[calc(100%-2rem)] flex-col gap-0 overflow-hidden p-0 sm:max-w-4xl"
+        className={cn(
+          "flex max-w-[calc(100%-2rem)] flex-col gap-0 overflow-hidden p-0",
+          isTallPreview ? "h-[90dvh] sm:max-w-5xl" : "h-[85dvh] sm:max-w-4xl",
+        )}
       >
         <div className="flex shrink-0 items-center gap-3 border-b px-4 py-3">
-          <div className="flex size-9 shrink-0 items-center justify-center rounded-md bg-primary/10 text-primary">
+          <div
+            className={cn(
+              "flex size-9 shrink-0 items-center justify-center rounded-md",
+              sourceType.accentClassName,
+            )}
+          >
             <FileIcon className="size-4" />
           </div>
           <div className="min-w-0 flex-1">
@@ -204,7 +213,7 @@ export function DocumentPreviewDialog({
               <Copy className="size-4" />
             </Button>
             <Button variant="ghost" size="icon-sm" aria-label="Download" asChild>
-              <a href={document.cloudinaryUrl} download={document.fileName}>
+              <a href={`/api/documents/${document.id}/raw?download=1`}>
                 <Download className="size-4" />
               </a>
             </Button>
@@ -221,7 +230,7 @@ export function DocumentPreviewDialog({
               </AlertDialogTrigger>
               <AlertDialogContent>
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Delete this document?</AlertDialogTitle>
+                  <AlertDialogTitle>Delete this source?</AlertDialogTitle>
                   <AlertDialogDescription>
                     {document.fileName} and its indexed chunks will be
                     permanently removed. This cannot be undone.
@@ -250,87 +259,134 @@ export function DocumentPreviewDialog({
           </div>
         </div>
 
-        <Tabs defaultValue="preview" className="flex min-h-0 flex-1 flex-col">
-          <div className="shrink-0 border-b px-4 py-2">
-            <TabsList>
-              <TabsTrigger value="preview">Preview</TabsTrigger>
-              <TabsTrigger value="raw">Raw</TabsTrigger>
-            </TabsList>
-          </div>
+        {!isReady ? (
+          <NonReadyPanel
+            document={document}
+            isDeleting={isDeleting}
+            onDelete={handleDelete}
+          />
+        ) : (
+          <Tabs defaultValue="primary" className="flex min-h-0 flex-1 flex-col">
+            <div className="shrink-0 border-b px-4 py-2">
+              <TabsList>
+                <TabsTrigger value="primary">{tabLabels.primary}</TabsTrigger>
+                <TabsTrigger value="secondary">
+                  {tabLabels.secondary}
+                </TabsTrigger>
+              </TabsList>
+            </div>
 
-          <TabsContent
-            value="preview"
-            className="min-h-0 flex-1 overflow-y-auto px-6 py-5"
-          >
-            {isLoading ? (
-              <div className="space-y-2.5">
-                <Skeleton className="h-4 w-3/4" />
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-5/6" />
-                <Skeleton className="h-4 w-2/3" />
-              </div>
-            ) : error ? (
-              <div className="flex flex-col items-start gap-2 text-sm text-destructive">
-                <p>{error}</p>
-                <Button variant="outline" size="sm" onClick={handleRetry}>
-                  <RotateCcw className="size-3.5" />
-                  Retry
-                </Button>
-              </div>
-            ) : preview?.content ? (
-              <>
-                <Markdown
-                  content={preview.content}
-                  scale="comfortable"
-                  className="max-w-none"
+            <TabsContent
+              value="primary"
+              className={cn(
+                "min-h-0 flex-1 overflow-y-auto",
+                isTallPreview ? "p-3" : "px-6 py-5",
+              )}
+            >
+              {isLoading ? (
+                <PreviewSkeleton />
+              ) : error ? (
+                <ErrorPanel message={error} onRetry={handleRetry} />
+              ) : (
+                <DocumentPreviewBody
+                  document={document}
+                  content={preview?.content ?? null}
+                  previewMarkdown={preview?.previewMarkdown ?? null}
+                  truncated={preview?.truncated ?? false}
                 />
-                {preview.truncated ? (
-                  <p className="mt-6 rounded-md border border-dashed px-3 py-2 text-xs text-muted-foreground">
-                    This preview was truncated to the first 1 MB of the file.
-                  </p>
-                ) : null}
-              </>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                Preview not available for this file type.
-              </p>
-            )}
-          </TabsContent>
+              )}
+            </TabsContent>
 
-          <TabsContent
-            value="raw"
-            className="min-h-0 flex-1 overflow-y-auto px-6 py-5"
-          >
-            {isLoading ? (
-              <div className="space-y-2.5">
-                <Skeleton className="h-4 w-3/4" />
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-5/6" />
-              </div>
-            ) : error ? (
-              <div className="flex flex-col items-start gap-2 text-sm text-destructive">
-                <p>{error}</p>
-                <Button variant="outline" size="sm" onClick={handleRetry}>
-                  <RotateCcw className="size-3.5" />
-                  Retry
-                </Button>
-              </div>
-            ) : preview?.content ? (
-              <pre
-                className={cn(
-                  "whitespace-pre-wrap font-mono text-xs leading-6 text-foreground",
-                )}
-              >
-                {preview.content}
-              </pre>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                Preview not available for this file type.
-              </p>
-            )}
-          </TabsContent>
-        </Tabs>
+            <TabsContent
+              value="secondary"
+              className="min-h-0 flex-1 overflow-y-auto px-6 py-5"
+            >
+              {isLoading ? (
+                <PreviewSkeleton />
+              ) : error ? (
+                <ErrorPanel message={error} onRetry={handleRetry} />
+              ) : preview?.content ? (
+                <PlainPreview
+                  content={preview.content}
+                  truncated={preview.truncated}
+                />
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  Preview not available for this file type.
+                </p>
+              )}
+            </TabsContent>
+          </Tabs>
+        )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+function PreviewSkeleton() {
+  return (
+    <div className="space-y-2.5">
+      <Skeleton className="h-4 w-3/4" />
+      <Skeleton className="h-4 w-full" />
+      <Skeleton className="h-4 w-5/6" />
+      <Skeleton className="h-4 w-2/3" />
+    </div>
+  );
+}
+
+function ErrorPanel({
+  message,
+  onRetry,
+}: {
+  message: string;
+  onRetry: () => void;
+}) {
+  return (
+    <div className="flex flex-col items-start gap-2 text-sm text-destructive">
+      <p>{message}</p>
+      <Button variant="outline" size="sm" onClick={onRetry}>
+        <RotateCcw className="size-3.5" />
+        Retry
+      </Button>
+    </div>
+  );
+}
+
+function NonReadyPanel({
+  document,
+  isDeleting,
+  onDelete,
+}: {
+  document: Document;
+  isDeleting: boolean;
+  onDelete: () => void;
+}) {
+  if (document.status === "FAILED") {
+    return (
+      <div className="flex min-h-0 flex-1 flex-col items-start gap-3 overflow-y-auto px-6 py-5">
+        <div className="w-full rounded-md border border-destructive/30 bg-destructive/5 px-4 py-3 text-sm text-destructive">
+          {document.error ?? "Processing this source failed."}
+        </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="border-destructive/40 text-destructive hover:bg-destructive/10"
+          disabled={isDeleting}
+          onClick={onDelete}
+        >
+          <Trash2 className="size-3.5" />
+          {isDeleting ? "Deleting…" : "Delete this source"}
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-0 flex-1 space-y-3 overflow-y-auto px-6 py-5">
+      <PreviewSkeleton />
+      <p className="text-sm text-muted-foreground">
+        Still processing this source…
+      </p>
+    </div>
   );
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Download, Eye, MoreVertical, Trash2 } from "lucide-react";
+import { Download, Eye, MoreVertical, RotateCcw, Trash2 } from "lucide-react";
 
 import {
   AlertDialog,
@@ -55,10 +55,14 @@ export function DocumentItem({
   onPreview,
 }: DocumentItemProps) {
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteIntent, setDeleteIntent] = useState<"delete" | "retry">(
+    "delete",
+  );
   const [isDeleting, setIsDeleting] = useState(false);
   const sourceType = sourceTypeForKind(sourceKind);
   const FileIcon = sourceType.icon;
   const isReady = status === "READY";
+  const isRetry = deleteIntent === "retry";
 
   const handleDelete = async () => {
     setIsDeleting(true);
@@ -137,6 +141,15 @@ export function DocumentItem({
           <span>{new Date(createdAt).toLocaleDateString()}</span>
         </div>
         {error ? <p className="mt-1 text-xs text-destructive">{error}</p> : null}
+        {status === "PROCESSING" ? (
+          <div
+            className="mt-1.5 h-1 w-full max-w-40 overflow-hidden rounded-full bg-muted"
+            role="progressbar"
+            aria-label={`Processing ${fileName}`}
+          >
+            <div className="h-full w-1/3 rounded-full bg-primary motion-safe:animate-[progress-indeterminate_1.2s_ease-in-out_infinite] motion-reduce:w-full motion-reduce:animate-none" />
+          </div>
+        ) : null}
       </div>
 
       <div className="relative z-10 shrink-0">
@@ -157,10 +170,24 @@ export function DocumentItem({
                 Download
               </a>
             </DropdownMenuItem>
+            {status === "FAILED" ? (
+              <DropdownMenuItem
+                onClick={() => {
+                  setDeleteIntent("retry");
+                  setDeleteOpen(true);
+                }}
+              >
+                <RotateCcw className="mr-2 size-4" />
+                Retry
+              </DropdownMenuItem>
+            ) : null}
             <DropdownMenuSeparator />
             <DropdownMenuItem
               variant="destructive"
-              onClick={() => setDeleteOpen(true)}
+              onClick={() => {
+                setDeleteIntent("delete");
+                setDeleteOpen(true);
+              }}
             >
               <Trash2 className="mr-2 size-4" />
               Delete
@@ -172,10 +199,13 @@ export function DocumentItem({
       <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete this source?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {isRetry ? "Retry processing this source?" : "Delete this source?"}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              {fileName} and its indexed chunks will be permanently removed.
-              This cannot be undone.
+              {isRetry
+                ? `Obsidian doesn't automatically reprocess a failed source yet — this deletes ${fileName} so you can upload it again.`
+                : `${fileName} and its indexed chunks will be permanently removed. This cannot be undone.`}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -185,7 +215,11 @@ export function DocumentItem({
               disabled={isDeleting}
               onClick={handleDelete}
             >
-              {isDeleting ? "Deleting…" : "Delete"}
+              {isDeleting
+                ? "Deleting…"
+                : isRetry
+                  ? "Delete & re-upload"
+                  : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

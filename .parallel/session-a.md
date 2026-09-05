@@ -30,6 +30,27 @@ restarted it (`bun run dev` in background) — it's up on :3000. Separately noti
 `./src/proxy.ts` doesn't export a valid function (Next 16 middleware→proxy rename) — not my file,
 left untouched, flagging in case it's an in-progress rename by whoever owns it.
 
+## Sandbox has no outbound IPv6 — fixed process-globally in src/inngest/client.ts
+
+This dev sandbox can't route IPv6 at all (confirmed via `curl -v` to the Neon Postgres
+host: IPv6 attempts get "Network is unreachable" instantly). Node's Happy Eyeballs
+(`autoSelectFamily`) still races an IPv6 attempt in parallel by default, and under Bun
+that surfaces as an unhandleable `TypeError: object null is not iterable ... at
+AggregateError` that kills every outgoing Postgres connection made from inside an
+Inngest function run (through the `next dev` process) — a bare script run with `bun run`
+was unaffected since it's a separate, short-lived process where the race apparently
+resolves differently. `src/inngest/client.ts` now calls
+`dns.setDefaultResultOrder("ipv4first")` and `net.setDefaultAutoSelectFamily(false)` at
+module scope — both are process-global Node settings, so putting the fix in a file every
+Inngest entry point imports fixes it for the whole process without touching
+`src/lib/prisma.ts` (not in either session's ownership list). If Session B's code also
+runs Prisma queries inside the same `next dev` process and hits similar random
+`ETIMEDOUT`/`AggregateError` failures, this is why — the fix already covers it since it's
+process-global, no action needed on Session B's side. Worth promoting to a proper
+`instrumentation.ts` at some point since it's currently a side effect of importing the
+Inngest client rather than an explicit startup hook, but that file isn't in my ownership
+list so I didn't add it speculatively.
+
 ## `src/app/api/documents/[documentId]/raw/route.ts` does not exist
 
 The shared contract lists this under Session A's ownership without a "(new)" marker, implying it

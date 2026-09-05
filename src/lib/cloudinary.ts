@@ -22,7 +22,7 @@ export async function uploadDocumentToCloudinary({
   fileName,
   mimeType,
 }: {
-  content: string;
+  content: string | Buffer;
   fileName: string;
   mimeType: string;
 }): Promise<CloudinaryUploadResult> {
@@ -52,12 +52,12 @@ export async function uploadDocumentToCloudinary({
     .update(`${signatureBase}${apiSecret}`)
     .digest("hex");
 
-  const body = new FormData();
-  body.set(
-    "file",
-    new Blob([Buffer.from(content, "utf8")], { type: mimeType }),
-    fileName,
+  const bytes = new Uint8Array(
+    typeof content === "string" ? Buffer.from(content, "utf8") : content,
   );
+
+  const body = new FormData();
+  body.set("file", new Blob([bytes], { type: mimeType }), fileName);
   body.set("public_id", publicId);
   body.set("timestamp", timestamp);
   body.set("api_key", apiKey);

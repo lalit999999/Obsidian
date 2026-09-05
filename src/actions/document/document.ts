@@ -10,18 +10,30 @@ import { getOwnedDocument } from "@/lib/ownership";
 import { prisma } from "@/lib/prisma";
 
 const MAX_PREVIEW_BYTES = 1024 * 1024;
-const TEXT_EXTENSIONS = [".md", ".txt"];
 
 export async function getDocumentContentAction(documentId: string) {
   const currentUser = await requireCurrentUser();
   const document = await getOwnedDocument(documentId, currentUser.id);
 
-  const isTextDocument = TEXT_EXTENSIONS.some((extension) =>
-    document.fileName.toLowerCase().endsWith(extension),
-  );
+  // PDF (and, eventually, docx/rtf/odt/image) content is extracted once at
+  // ingest time and stored on the row — serve that instead of re-fetching
+  // and re-parsing the original binary on every preview open.
+  if (document.sourceKind !== "TEXT" && document.sourceKind !== "MARKDOWN") {
+    if (!document.extractedText) {
+      return {
+        document,
+        content: null,
+        previewMarkdown: document.previewMarkdown,
+        truncated: false,
+      };
+    }
 
-  if (!isTextDocument) {
-    return { document, content: null, truncated: false };
+    const truncated = document.extractedText.length > MAX_PREVIEW_BYTES;
+    const content = truncated
+      ? document.extractedText.slice(0, MAX_PREVIEW_BYTES)
+      : document.extractedText;
+
+    return { document, content, previewMarkdown: document.previewMarkdown, truncated };
   }
 
   let response: Response;
@@ -51,7 +63,7 @@ export async function getDocumentContentAction(documentId: string) {
     truncated ? buffer.slice(0, MAX_PREVIEW_BYTES) : buffer,
   );
 
-  return { document, content, truncated };
+  return { document, content, previewMarkdown: null, truncated };
 }
 
 export async function deleteDocumentAction(documentId: string) {

@@ -1,9 +1,14 @@
 // TODO(Session A): SupportedRagFileExtension was removed from src/types/rag.ts
 // per the shared contract (C5) — this local alias is a compile-only stand-in
-// so the existing txt/md path keeps working until the multi-format parser lands.
-type SupportedRagFileExtension = "txt" | "md";
+// so the existing txt/md/pdf path keeps working until the multi-format parser
+// (docx/rtf/odt/image) lands.
+type SupportedRagFileExtension = "txt" | "md" | "pdf";
 
-const SUPPORTED_EXTENSIONS = new Set<SupportedRagFileExtension>(["txt", "md"]);
+const SUPPORTED_EXTENSIONS = new Set<SupportedRagFileExtension>([
+  "txt",
+  "md",
+  "pdf",
+]);
 
 export function getSupportedRagFileExtension(
   fileName?: string,
@@ -34,7 +39,7 @@ export function parseDocumentContent(
     const extension = getSupportedRagFileExtension(fileName);
     if (extension === null) {
       throw new Error(
-        `Unsupported file type for RAG ingestion: ${fileName}. Supported types are .txt and .md.`,
+        `Unsupported file type for RAG ingestion: ${fileName}. Supported types are .txt, .md, and .pdf.`,
       );
     }
   }

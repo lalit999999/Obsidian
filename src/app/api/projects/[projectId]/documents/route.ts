@@ -5,9 +5,11 @@ import { uploadDocumentToCloudinary } from "@/lib/cloudinary";
 import { handleRouteError, jsonError, jsonSuccess } from "@/lib/http";
 import { getOwnedProject } from "@/lib/ownership";
 import { prisma } from "@/lib/prisma";
+import { extractPdfText } from "@/lib/rag/pdf";
 import { ingestDocument } from "@/actions/rag/ingest";
 import { serializeDocument } from "@/lib/serializers";
 import { validateSupportedDocumentFile } from "@/lib/validations";
+import type { PreviewKindValue, SourceKindValue } from "@/types/rag";
 
 interface RouteParams {
   params: Promise<{ projectId: string }>;
@@ -44,16 +46,45 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     if (!validateSupportedDocumentFile(file.name)) {
       return jsonError(
-        "Only .md and .txt files are supported.",
+        "Only .md, .txt, and .pdf files are supported.",
         400,
         "BAD_REQUEST",
       );
     }
 
-    const content = await file.text();
     const fileSize = file.size;
-    const mimeType =
-      file.type || (file.name.endsWith(".md") ? "text/markdown" : "text/plain");
+    const extension = file.name.toLowerCase().split(".").pop();
+
+    // TODO(Session A): derive from the real multi-format sourceKind once the
+    // docx/rtf/odt/image parsers land — this route only ever handles
+    // txt/md/pdf today.
+    let sourceKind: SourceKindValue;
+    let previewKind: PreviewKindValue;
+    let mimeType: string;
+    let uploadContent: string | Buffer;
+    let ingestContent: string;
+    let pageCount: number | null = null;
+
+    if (extension === "pdf") {
+      const arrayBuffer = await file.arrayBuffer();
+      const buffer = Buffer.from(arrayBuffer);
+      const extracted = await extractPdfText(new Uint8Array(buffer));
+
+      sourceKind = "PDF";
+      previewKind = "PDF";
+      mimeType = file.type || "application/pdf";
+      uploadContent = buffer;
+      ingestContent = extracted.text;
+      pageCount = extracted.pageCount;
+    } else {
+      const content = await file.text();
+
+      sourceKind = extension === "md" || extension === "markdown" ? "MARKDOWN" : "TEXT";
+      previewKind = sourceKind === "MARKDOWN" ? "MARKDOWN" : "PLAIN";
+      mimeType = file.type || (sourceKind === "MARKDOWN" ? "text/markdown" : "text/plain");
+      uploadContent = content;
+      ingestContent = content;
+    }
 
     const document = await prisma.document.create({
       data: {
@@ -65,12 +96,16 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         cloudinaryUrl: "",
         cloudinaryPublicId: "",
         status: "PROCESSING",
+        sourceKind,
+        previewKind,
+        pageCount,
+        extractedText: ingestContent,
       },
     });
 
     try {
       const cloudinaryAsset = await uploadDocumentToCloudinary({
-        content,
+        content: uploadContent,
         fileName: file.name,
         mimeType,
       });
@@ -88,12 +123,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         projectId,
         userId: currentUser.id,
         fileName: file.name,
-        // TODO(Session A): derive from the real multi-format sourceKind once
-        // the parser lands — this route only ever handles txt/md today.
-        sourceKind: file.name.toLowerCase().match(/\.(md|markdown)$/)
-          ? "MARKDOWN"
-          : "TEXT",
-        content,
+        sourceKind,
+        content: ingestContent,
       });
 
       const updatedDocument = await prisma.document.update({

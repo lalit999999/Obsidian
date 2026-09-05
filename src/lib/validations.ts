@@ -232,7 +232,7 @@ export function parseChatMessageInput(input: unknown): ChatMessageInput {
 
 export function validateSupportedDocumentFile(fileName: string): boolean {
   const extension = fileName.split(".").pop()?.toLowerCase();
-  return extension === "md" || extension === "txt";
+  return extension === "md" || extension === "txt" || extension === "pdf";
 }
 /**
  * INPUT VALIDATION

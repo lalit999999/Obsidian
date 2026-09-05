@@ -98,6 +98,7 @@ export function serializeMessage(message: {
   role: MessageRole;
   content: string;
   sources: unknown;
+  blocks?: unknown;
   createdAt: Date;
 }) {
   return {
@@ -106,6 +107,8 @@ export function serializeMessage(message: {
     role: message.role,
     content: message.content,
     sources: (message.sources ?? null) as ChatMessageSource[] | null,
+    // Session B owns the blocks payload shape; pass it through untyped.
+    blocks: (message.blocks ?? null) as unknown,
     createdAt: toIsoString(message.createdAt),
   };
 }

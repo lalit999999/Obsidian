@@ -71,18 +71,20 @@ model VerificationToken {
 // ============================================================
 
 model Project {
-  id          String   @id @default(uuid())
+  id          String    @id @default(uuid())
   name        String
   description String?
   userId      String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  deletedAt   DateTime?
 
   user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   documents Document[]
   chats     Chat[]
 
   @@index([userId, updatedAt])
+  @@index([userId, deletedAt])
 }
 
 enum DocumentStatus {
@@ -138,10 +140,17 @@ model Document {
   createdAt   DateTime  @default(now())
   processedAt DateTime?
 
+  deletedAt           DateTime?
+  processingStartedAt DateTime?
+  ingestAttempts      Int       @default(0)
+  inngestRunId        String?
+
   project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@index([projectId, createdAt])
   @@index([status])
+  @@index([status, processingStartedAt])
+  @@index([projectId, deletedAt])
 }
 
 model Chat {
@@ -175,6 +184,10 @@ model Message {
   // Retrieved chunks that produced this answer, for UI citations:
   // [{ documentId, fileName, chunkIndex, score }]
   sources Json?
+
+  // Session B owns the shape of this payload; Session A only adds the column
+  // and passes it through as `unknown` (see serializeMessage).
+  blocks Json?
 
   createdAt DateTime @default(now())
 

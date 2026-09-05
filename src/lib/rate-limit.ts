@@ -1,5 +1,10 @@
 import { RateLimitError } from "@/lib/errors";
 
+// In-memory only — resets on every cold start/deploy, and doesn't share
+// state across instances. Inngest's throttle (src/inngest/concurrency.ts)
+// covers queue-side rate limiting, but this chat route is synchronous and
+// must stay that way, so this Map is still what guards it. A Postgres- or
+// Redis-backed limiter is the real fix; this is not it.
 const WINDOW_MS = 60_000;
 const MAX_REQUESTS = 10;
 

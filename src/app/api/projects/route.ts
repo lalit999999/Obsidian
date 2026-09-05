@@ -10,7 +10,7 @@ export async function GET() {
   try {
     const currentUser = await requireCurrentUser();
     const projects = await prisma.project.findMany({
-      where: { userId: currentUser.id },
+      where: { userId: currentUser.id, deletedAt: null },
       include: { _count: { select: { documents: true, chats: true } } },
     });
 

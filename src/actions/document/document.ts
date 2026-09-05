@@ -3,8 +3,8 @@
 import { revalidatePath } from "next/cache";
 
 import { requireCurrentUser } from "@/lib/auth";
-import { deleteCloudinaryAsset } from "@/lib/cloudinary";
-import { deleteDocumentVectors } from "@/lib/rag/qdrant-store";
+import { inngest } from "@/inngest/client";
+import { documentDeleted } from "@/inngest/events";
 import { getOwnedDocument } from "@/lib/ownership";
 import { prisma } from "@/lib/prisma";
 
@@ -24,23 +24,21 @@ export async function deleteDocumentAction(documentId: string) {
   const currentUser = await requireCurrentUser();
   const document = await getOwnedDocument(documentId, currentUser.id);
 
-  // Vector deletion stays fatal - a stranded Qdrant point is a silent data
-  // leak. A dead Cloudinary asset is just wasted storage, so it's logged and
-  // swallowed rather than blocking the row from ever being deletable.
-  await deleteDocumentVectors(document.id);
-
-  try {
-    await deleteCloudinaryAsset(document.cloudinaryPublicId, document.mimeType);
-  } catch (error) {
-    console.error(
-      `[document] failed to delete Cloudinary asset ${document.cloudinaryPublicId}:`,
-      error,
-    );
-  }
-
-  await prisma.document.delete({
+  // Soft-delete and let purge-document.ts do the real Qdrant/Cloudinary/
+  // Postgres cleanup in dependency order — see src/actions/project/project.ts
+  // for why this can't happen inline.
+  await prisma.document.update({
     where: { id: document.id },
+    data: { deletedAt: new Date() },
   });
+
+  await inngest.send(
+    documentDeleted.create({
+      documentId: document.id,
+      userId: currentUser.id,
+      cloudinaryPublicId: document.cloudinaryPublicId,
+    }),
+  );
 
   revalidatePath(`/project/${document.projectId}`);
 }

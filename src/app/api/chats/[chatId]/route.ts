@@ -15,7 +15,11 @@ export async function GET(_: NextRequest, { params }: RouteParams) {
     const { chatId } = await params;
     const currentUser = await requireCurrentUser();
     const chat = await prisma.chat.findFirst({
-      where: { id: chatId, userId: currentUser.id },
+      where: {
+        id: chatId,
+        userId: currentUser.id,
+        project: { deletedAt: null },
+      },
       include: {
         _count: { select: { messages: true } },
         messages: { orderBy: { createdAt: "asc" } },

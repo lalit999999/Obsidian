@@ -3,7 +3,7 @@ import { NotFoundError } from "@/lib/errors";
 
 export async function getOwnedProject(projectId: string, userId: string) {
   const project = await prisma.project.findFirst({
-    where: { id: projectId, userId },
+    where: { id: projectId, userId, deletedAt: null },
   });
 
   if (!project) {
@@ -15,7 +15,7 @@ export async function getOwnedProject(projectId: string, userId: string) {
 
 export async function getOwnedChat(chatId: string, userId: string) {
   const chat = await prisma.chat.findFirst({
-    where: { id: chatId, userId },
+    where: { id: chatId, userId, project: { deletedAt: null } },
     include: { project: true },
   });
 
@@ -32,7 +32,12 @@ export async function getOwnedChat(chatId: string, userId: string) {
 
 export async function getOwnedDocument(documentId: string, userId: string) {
   const document = await prisma.document.findFirst({
-    where: { id: documentId, userId },
+    where: {
+      id: documentId,
+      userId,
+      deletedAt: null,
+      project: { deletedAt: null },
+    },
     include: { project: true },
   });
 

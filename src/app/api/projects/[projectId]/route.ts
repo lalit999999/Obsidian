@@ -20,7 +20,7 @@ export async function GET(_: NextRequest, { params }: RouteParams) {
     const { projectId } = await params;
     const currentUser = await requireCurrentUser();
     const project = await prisma.project.findFirst({
-      where: { id: projectId, userId: currentUser.id },
+      where: { id: projectId, userId: currentUser.id, deletedAt: null },
       include: { _count: { select: { documents: true, chats: true } } },
     });
 

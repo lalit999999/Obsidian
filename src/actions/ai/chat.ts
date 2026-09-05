@@ -1,7 +1,7 @@
 import { generateKnowledgeAnswer } from "@/actions/ai/agent";
 import { formatRetrievedChunks } from "@/actions/ai/prompts";
 import { retrieveRelevantChunks } from "@/actions/rag/retrieve";
-import type { ChatMessageSource } from "@/types/chat";
+import type { AnswerPayload, ChatMessageSource } from "@/types/chat";
 
 export interface GenerateChatResponseInput {
   userId: string;
@@ -13,6 +13,7 @@ export interface GenerateChatResponseInput {
 
 export interface GenerateChatResponseResult {
   answer: string;
+  blocks: AnswerPayload | null;
   sources: ChatMessageSource[];
   context: string;
 }
@@ -38,10 +39,12 @@ export async function generateChatResponse({
     context,
     isScoped,
     scopedSourceCount: documentIds?.length ?? 0,
+    sources: relevantChunks,
   });
 
   return {
     answer: assistantResult.answer,
+    blocks: assistantResult.blocks,
     context,
     sources: relevantChunks.map((chunk) => ({
       documentId: chunk.documentId,

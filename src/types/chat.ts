@@ -32,6 +32,7 @@ export interface ChatWithMessages extends ChatListItem {
 
 export interface SendMessageRequest {
   content: string;
+  documentIds?: string[];
 }
 
 export interface SendMessageResponse {
@@ -40,5 +41,6 @@ export interface SendMessageResponse {
     userMessage: ChatMessage;
     assistantMessage: ChatMessage;
     sources: ChatMessageSource[];
+    scopedDocumentIds: string[];
   };
 }

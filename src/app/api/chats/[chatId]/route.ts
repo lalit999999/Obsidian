@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 
-import { deleteChatAction, renameChatAction } from "@/actions/chat/chat";
+import { deleteChatAction, updateChatAction } from "@/actions/chat/chat";
 import { requireCurrentUser } from "@/lib/auth";
 import { handleRouteError, jsonError, jsonSuccess } from "@/lib/http";
 import { prisma } from "@/lib/prisma";
@@ -29,6 +29,7 @@ export async function GET(_: NextRequest, { params }: RouteParams) {
     return jsonSuccess({
       chat: {
         ...serializeChat(chat),
+        documentIds: chat.documentIds,
         messages: (chat.messages ?? []).map(serializeMessage),
       },
     });
@@ -41,10 +42,13 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
   try {
     const { chatId } = await params;
     const body = await request.json();
-    const chat = await renameChatAction(chatId, body);
+    const chat = await updateChatAction(chatId, body);
 
     return jsonSuccess({
-      chat: serializeChat({ ...chat, _count: { messages: 0 } }),
+      chat: {
+        ...serializeChat({ ...chat, _count: { messages: 0 } }),
+        documentIds: chat.documentIds,
+      },
     });
   } catch (error) {
     return handleRouteError(error);

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { PanelLeftOpen, PanelRightOpen } from "lucide-react";
 import { toast } from "sonner";
 
@@ -26,6 +26,9 @@ interface ProjectWorkspaceProps {
   initialMessages: Message[];
 }
 
+const DOCUMENT_POLL_INTERVAL_MS = 2500;
+const SCOPE_PATCH_DEBOUNCE_MS = 400;
+
 export function ProjectWorkspace({
   project,
   initialChats,
@@ -37,6 +40,11 @@ export function ProjectWorkspace({
   const [documents, setDocuments] = useState(initialDocuments);
   const [activeChatId, setActiveChatId] = useState<string | null>(
     initialActiveChatId,
+  );
+  const [selectedDocumentIds, setSelectedDocumentIds] = useState<string[]>(
+    () =>
+      initialChats.find((chat) => chat.id === initialActiveChatId)
+        ?.documentIds ?? [],
   );
   const [messagesByChatId, setMessagesByChatId] = useState<
     Record<string, Message[]>
@@ -57,15 +65,31 @@ export function ProjectWorkspace({
     null,
   );
 
+  const scopePatchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+
   useEffect(() => {
     setChats(initialChats);
     setDocuments(initialDocuments);
     setActiveChatId(initialActiveChatId);
+    setSelectedDocumentIds(
+      initialChats.find((chat) => chat.id === initialActiveChatId)
+        ?.documentIds ?? [],
+    );
     setMessagesByChatId(
       initialActiveChatId ? { [initialActiveChatId]: initialMessages } : {},
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [project.id]);
+
+  useEffect(() => {
+    return () => {
+      if (scopePatchTimeoutRef.current) {
+        clearTimeout(scopePatchTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const activeChat = useMemo(
     () => chats.find((chat) => chat.id === activeChatId),
@@ -75,6 +99,80 @@ export function ProjectWorkspace({
   const activeMessages = activeChatId
     ? (messagesByChatId[activeChatId] ?? [])
     : [];
+
+  const hasPendingDocuments = documents.some(
+    (document) =>
+      document.status === "PENDING" || document.status === "PROCESSING",
+  );
+
+  const mergeDocuments = (fresh: Document[]) => {
+    setDocuments((current) => {
+      const currentById = new Map(current.map((doc) => [doc.id, doc]));
+
+      for (const doc of fresh) {
+        const previous = currentById.get(doc.id);
+        if (previous && previous.status !== doc.status) {
+          if (doc.status === "READY") {
+            toast.success(`${doc.fileName} is ready`);
+          } else if (doc.status === "FAILED") {
+            toast.error(doc.error ?? `${doc.fileName} failed to process.`);
+          }
+        }
+      }
+
+      return fresh.map((doc) => {
+        const previous = currentById.get(doc.id);
+        return previous ? { ...previous, ...doc } : doc;
+      });
+    });
+  };
+
+  useEffect(() => {
+    if (!hasPendingDocuments) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const poll = async () => {
+      if (document.visibilityState === "hidden") {
+        return;
+      }
+
+      try {
+        const response = await fetch(
+          `/api/projects/${project.id}/documents`,
+        );
+        const payload = await response.json();
+
+        if (cancelled || !response.ok || !payload.success) {
+          return;
+        }
+
+        mergeDocuments(payload.data.documents as Document[]);
+      } catch {
+        // Network hiccup — retry on the next tick.
+      }
+    };
+
+    const intervalId = setInterval(poll, DOCUMENT_POLL_INTERVAL_MS);
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        void poll();
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      cancelled = true;
+      clearInterval(intervalId);
+      document.removeEventListener(
+        "visibilitychange",
+        handleVisibilityChange,
+      );
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hasPendingDocuments, project.id]);
 
   const loadMessages = async (chatId: string) => {
     if (messagesByChatId[chatId]) {
@@ -109,6 +207,9 @@ export function ProjectWorkspace({
 
   const selectChat = (chatId: string) => {
     setActiveChatId(chatId);
+    setSelectedDocumentIds(
+      chats.find((chat) => chat.id === chatId)?.documentIds ?? [],
+    );
     void loadMessages(chatId);
   };
 
@@ -116,7 +217,10 @@ export function ProjectWorkspace({
     const response = await fetch("/api/chats", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ projectId: project.id }),
+      body: JSON.stringify({
+        projectId: project.id,
+        documentIds: selectedDocumentIds,
+      }),
     });
 
     const payload = await response.json();
@@ -187,11 +291,14 @@ export function ProjectWorkspace({
       const response = await fetch(`/api/chats/${chatId}/messages`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content: trimmed }),
+        body: JSON.stringify({
+          content: trimmed,
+          documentIds: selectedDocumentIds,
+        }),
       });
 
       let payload:
-        | SendMessageResponse
+        | (SendMessageResponse & { data: { scopedDocumentIds?: string[] } })
         | { success: false; error?: { message?: string } };
 
       try {
@@ -218,6 +325,16 @@ export function ProjectWorkspace({
           payload.data.assistantMessage,
         ],
       }));
+
+      if (payload.data.scopedDocumentIds) {
+        const resolvedScope = payload.data.scopedDocumentIds;
+        setSelectedDocumentIds(resolvedScope);
+        setChats((current) =>
+          current.map((c) =>
+            c.id === chatId ? { ...c, documentIds: resolvedScope } : c,
+          ),
+        );
+      }
 
       if (chat.title === "New chat") {
         handleChatTitleChange(chatId, trimmed.slice(0, 120));
@@ -288,8 +405,62 @@ export function ProjectWorkspace({
     setActiveChatId((current) => (current === chatId ? null : current));
   };
 
-  const uploadDocument = async (file: File) => {
+  const schedulePersistSelection = (ids: string[]) => {
+    if (!activeChatId) {
+      return;
+    }
+
+    if (scopePatchTimeoutRef.current) {
+      clearTimeout(scopePatchTimeoutRef.current);
+    }
+
+    const chatId = activeChatId;
+    scopePatchTimeoutRef.current = setTimeout(() => {
+      fetch(`/api/chats/${chatId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ documentIds: ids }),
+      })
+        .then((response) => response.json())
+        .then((payload) => {
+          if (payload?.success) {
+            setChats((current) =>
+              current.map((c) => (c.id === chatId ? payload.data.chat : c)),
+            );
+          }
+        })
+        .catch(() => {
+          // Selection stays correct locally; it'll persist on the next change.
+        });
+    }, SCOPE_PATCH_DEBOUNCE_MS);
+  };
+
+  const toggleSelectDocument = (documentId: string) => {
+    setSelectedDocumentIds((current) => {
+      const next = current.includes(documentId)
+        ? current.filter((id) => id !== documentId)
+        : [...current, documentId];
+      schedulePersistSelection(next);
+      return next;
+    });
+  };
+
+  const selectAllDocuments = () => {
+    const readyIds = documents
+      .filter((document) => document.status === "READY")
+      .map((document) => document.id);
+    setSelectedDocumentIds(readyIds);
+    schedulePersistSelection(readyIds);
+  };
+
+  const clearSelection = () => {
+    setSelectedDocumentIds([]);
+    schedulePersistSelection([]);
+  };
+
+  const addFileSource = async (file: File): Promise<Document> => {
     const formData = new FormData();
+    formData.append("mode", "file");
     formData.append("file", file);
 
     const response = await fetch(`/api/projects/${project.id}/documents`, {
@@ -299,11 +470,43 @@ export function ProjectWorkspace({
 
     const payload = await response.json();
     if (!response.ok || !payload.success) {
-      throw new Error(payload?.error?.message ?? "Failed to upload document.");
+      throw new Error(payload?.error?.message ?? "Failed to add source.");
     }
 
-    setDocuments((current) => [payload.data.document as Document, ...current]);
-    toast.success("Document uploaded");
+    const document = payload.data.document as Document;
+    setDocuments((current) => [document, ...current]);
+    toast.success("Added — processing…");
+    return document;
+  };
+
+  const addTextSource = async ({
+    title,
+    text,
+  }: {
+    title: string;
+    text: string;
+  }): Promise<Document> => {
+    const formData = new FormData();
+    formData.append("mode", "text");
+    formData.append("text", text);
+    if (title) {
+      formData.append("title", title);
+    }
+
+    const response = await fetch(`/api/projects/${project.id}/documents`, {
+      method: "POST",
+      body: formData,
+    });
+
+    const payload = await response.json();
+    if (!response.ok || !payload.success) {
+      throw new Error(payload?.error?.message ?? "Failed to add source.");
+    }
+
+    const document = payload.data.document as Document;
+    setDocuments((current) => [document, ...current]);
+    toast.success("Added — processing…");
+    return document;
   };
 
   const deleteDocument = async (documentId: string) => {
@@ -322,6 +525,14 @@ export function ProjectWorkspace({
     setPreviewDocumentId((current) =>
       current === documentId ? null : current,
     );
+    setSelectedDocumentIds((current) => {
+      if (!current.includes(documentId)) {
+        return current;
+      }
+      const next = current.filter((id) => id !== documentId);
+      schedulePersistSelection(next);
+      return next;
+    });
   };
 
   const handleChatTitleChange = (chatId: string, title: string) => {
@@ -399,6 +610,9 @@ export function ProjectWorkspace({
             onOpenDocuments={() => setMobileDocsOpen(true)}
             onOpenSource={(documentId) => setPreviewDocumentId(documentId)}
             disabled={!activeChat && !canCreateChat}
+            documents={documents}
+            selectedDocumentIds={selectedDocumentIds}
+            onClearScope={clearSelection}
           />
         </div>
 
@@ -421,7 +635,12 @@ export function ProjectWorkspace({
             <div className="h-full min-h-0 w-75">
               <DocumentsPanel
                 documents={documents}
-                onUploadDocument={uploadDocument}
+                selectedDocumentIds={selectedDocumentIds}
+                onToggleSelect={toggleSelectDocument}
+                onSelectAll={selectAllDocuments}
+                onClearSelection={clearSelection}
+                onAddFileSource={addFileSource}
+                onAddTextSource={addTextSource}
                 onDeleteDocument={deleteDocument}
                 onPreviewDocument={(documentId) =>
                   setPreviewDocumentId(documentId)
@@ -462,7 +681,12 @@ export function ProjectWorkspace({
           <div className="mt-4 h-[calc(100dvh-6rem)] min-h-0">
             <DocumentsPanel
               documents={documents}
-              onUploadDocument={uploadDocument}
+              selectedDocumentIds={selectedDocumentIds}
+              onToggleSelect={toggleSelectDocument}
+              onSelectAll={selectAllDocuments}
+              onClearSelection={clearSelection}
+              onAddFileSource={addFileSource}
+              onAddTextSource={addTextSource}
               onDeleteDocument={deleteDocument}
               onPreviewDocument={(documentId) => {
                 setPreviewDocumentId(documentId);

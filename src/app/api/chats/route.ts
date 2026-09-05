@@ -23,7 +23,12 @@ export async function GET(request: NextRequest) {
       include: { _count: { select: { messages: true } } },
     });
 
-    return jsonSuccess({ chats: chats.map(serializeChat) });
+    return jsonSuccess({
+      chats: chats.map((chat) => ({
+        ...serializeChat(chat),
+        documentIds: chat.documentIds,
+      })),
+    });
   } catch (error) {
     return handleRouteError(error);
   }
@@ -35,7 +40,12 @@ export async function POST(request: NextRequest) {
     const chat = await createChatAction(body);
 
     return jsonSuccess(
-      { chat: serializeChat({ ...chat, _count: { messages: 0 } }) },
+      {
+        chat: {
+          ...serializeChat({ ...chat, _count: { messages: 0 } }),
+          documentIds: chat.documentIds,
+        },
+      },
       { status: 201 },
     );
   } catch (error) {

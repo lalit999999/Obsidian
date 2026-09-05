@@ -8,9 +8,15 @@ const suggestions = [
 
 interface ChatEmptyStateProps {
   onSelectPrompt: (prompt: string) => void;
+  scopedDocumentCount?: number;
 }
 
-export function ChatEmptyState({ onSelectPrompt }: ChatEmptyStateProps) {
+export function ChatEmptyState({
+  onSelectPrompt,
+  scopedDocumentCount = 0,
+}: ChatEmptyStateProps) {
+  const isScoped = scopedDocumentCount > 0;
+
   return (
     <div className="flex h-full items-center justify-center p-4">
       <div className="mx-auto flex max-w-lg flex-col items-center text-center">
@@ -19,8 +25,18 @@ export function ChatEmptyState({ onSelectPrompt }: ChatEmptyStateProps) {
         </div>
         <h3 className="mt-4 text-lg font-semibold">Start a conversation</h3>
         <p className="mt-1.5 text-sm leading-6 text-muted-foreground">
-          Ask questions about your notes, summarize a topic, or explore an
-          idea with your project&rsquo;s documents.
+          {isScoped ? (
+            <>
+              Ask questions scoped to the {scopedDocumentCount}{" "}
+              {scopedDocumentCount === 1 ? "source" : "sources"} you&rsquo;ve
+              selected in the panel.
+            </>
+          ) : (
+            <>
+              Ask questions about your notes, summarize a topic, or explore
+              an idea with your project&rsquo;s documents.
+            </>
+          )}
         </p>
         <div className="mt-5 flex flex-wrap justify-center gap-2">
           {suggestions.map((suggestion) => (

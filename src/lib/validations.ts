@@ -4,6 +4,7 @@ export const MAX_PROJECT_NAME_LENGTH = 120;
 export const MAX_PROJECT_DESCRIPTION_LENGTH = 500;
 export const MAX_CHAT_TITLE_LENGTH = 120;
 export const MAX_CHAT_MESSAGE_LENGTH = 5000;
+export const MAX_CHAT_DOCUMENT_IDS = 50;
 
 function normalizeOptionalString(value: unknown): string | undefined {
   if (value === undefined || value === null) {
@@ -41,6 +42,35 @@ function ensureLength(value: string, maxLength: number, field: string): string {
   return value;
 }
 
+// documentIds narrows chat scope to a subset of a project's sources — see
+// AGENTS.md contract C7/C9. An empty or omitted array means "whole project."
+function normalizeDocumentIds(value: unknown): string[] | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+
+  if (!Array.isArray(value)) {
+    throw new ValidationError("documentIds must be an array of strings.");
+  }
+
+  const ids: string[] = [];
+  for (const item of value) {
+    if (typeof item !== "string" || !item.trim()) {
+      throw new ValidationError("documentIds must contain non-empty strings.");
+    }
+    ids.push(item.trim());
+  }
+
+  const deduped = Array.from(new Set(ids));
+  if (deduped.length > MAX_CHAT_DOCUMENT_IDS) {
+    throw new ValidationError(
+      `documentIds must contain ${MAX_CHAT_DOCUMENT_IDS} or fewer ids.`,
+    );
+  }
+
+  return deduped;
+}
+
 export interface CreateProjectInput {
   name: string;
   description?: string;
@@ -54,14 +84,21 @@ export interface UpdateProjectInput {
 export interface CreateChatInput {
   projectId: string;
   title?: string;
+  documentIds?: string[];
 }
 
 export interface RenameChatInput {
   title: string;
 }
 
+export interface UpdateChatInput {
+  title?: string;
+  documentIds?: string[];
+}
+
 export interface ChatMessageInput {
   content: string;
+  documentIds?: string[];
 }
 
 export function parseCreateProjectInput(input: unknown): CreateProjectInput {
@@ -130,7 +167,9 @@ export function parseCreateChatInput(input: unknown): CreateChatInput {
     ensureLength(title, MAX_CHAT_TITLE_LENGTH, "Title");
   }
 
-  return { projectId, title };
+  const documentIds = normalizeDocumentIds(record.documentIds);
+
+  return { projectId, title, documentIds };
 }
 
 export function parseRenameChatInput(input: unknown): RenameChatInput {
@@ -148,6 +187,33 @@ export function parseRenameChatInput(input: unknown): RenameChatInput {
   return { title };
 }
 
+export function parseUpdateChatInput(input: unknown): UpdateChatInput {
+  if (!input || typeof input !== "object") {
+    throw new ValidationError("Request body is required.");
+  }
+
+  const record = input as Record<string, unknown>;
+  const result: UpdateChatInput = {};
+
+  if (record.title !== undefined) {
+    result.title = ensureLength(
+      normalizeRequiredString(record.title, "Title"),
+      MAX_CHAT_TITLE_LENGTH,
+      "Title",
+    );
+  }
+
+  if (record.documentIds !== undefined) {
+    result.documentIds = normalizeDocumentIds(record.documentIds);
+  }
+
+  if (result.title === undefined && result.documentIds === undefined) {
+    throw new ValidationError("No updatable fields were provided.");
+  }
+
+  return result;
+}
+
 export function parseChatMessageInput(input: unknown): ChatMessageInput {
   if (!input || typeof input !== "object") {
     throw new ValidationError("Request body is required.");
@@ -159,8 +225,9 @@ export function parseChatMessageInput(input: unknown): ChatMessageInput {
     MAX_CHAT_MESSAGE_LENGTH,
     "Message content",
   );
+  const documentIds = normalizeDocumentIds(record.documentIds);
 
-  return { content };
+  return { content, documentIds };
 }
 
 export function validateSupportedDocumentFile(fileName: string): boolean {

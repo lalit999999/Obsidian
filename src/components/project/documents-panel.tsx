@@ -2,18 +2,27 @@
 
 import { useState } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { FileStack, PanelRightClose, Upload } from "lucide-react";
+import { FileStack, PanelRightClose, Plus } from "lucide-react";
 
+import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { Document } from "@/types";
 import { DocumentItem } from "./document-item";
-import { UploadDocumentDialog } from "./upload-document-dialog";
+import { AddSourceDialog } from "./add-source-dialog";
 
 interface DocumentsPanelProps {
   documents: Document[];
-  onUploadDocument: (file: File) => Promise<void> | void;
+  selectedDocumentIds: string[];
+  onToggleSelect: (documentId: string) => void;
+  onSelectAll: () => void;
+  onClearSelection: () => void;
+  onAddFileSource: (file: File) => Promise<Document>;
+  onAddTextSource: (input: {
+    title: string;
+    text: string;
+  }) => Promise<Document>;
   onDeleteDocument: (documentId: string) => Promise<void> | void;
   onPreviewDocument?: (documentId: string) => void;
   onCollapse?: () => void;
@@ -21,35 +30,22 @@ interface DocumentsPanelProps {
 
 export function DocumentsPanel({
   documents,
-  onUploadDocument,
+  selectedDocumentIds,
+  onToggleSelect,
+  onSelectAll,
+  onClearSelection,
+  onAddFileSource,
+  onAddTextSource,
   onDeleteDocument,
   onPreviewDocument,
   onCollapse,
 }: DocumentsPanelProps) {
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const shouldReduceMotion = useReducedMotion();
 
-  const handleUpload = async (file: File) => {
-    if (isUploading) {
-      return;
-    }
-
-    setIsUploading(true);
-    setError(null);
-
-    try {
-      await onUploadDocument(file);
-      setDialogOpen(false);
-    } catch (uploadError) {
-      setError(
-        uploadError instanceof Error ? uploadError.message : "Upload failed.",
-      );
-    } finally {
-      setIsUploading(false);
-    }
-  };
+  const readyDocuments = documents.filter((doc) => doc.status === "READY");
+  const selectedCount = selectedDocumentIds.length;
+  const showSelectionBar = readyDocuments.length >= 2;
 
   return (
     <Card className="flex h-full min-h-0 flex-col gap-0 overflow-hidden border-border/80 bg-card/90 py-0">
@@ -58,8 +54,8 @@ export function DocumentsPanel({
         <h3 className="text-sm font-medium">Sources</h3>
         <div className="ml-auto flex items-center gap-1">
           <Button size="sm" onClick={() => setDialogOpen(true)}>
-            <Upload className="size-3.5" />
-            Upload
+            <Plus className="size-3.5" />
+            Add source
           </Button>
           {onCollapse ? (
             <Button
@@ -74,6 +70,32 @@ export function DocumentsPanel({
           ) : null}
         </div>
       </div>
+
+      {showSelectionBar ? (
+        <div className="flex shrink-0 items-center gap-2 border-b bg-muted/30 px-3 py-1.5 text-xs">
+          <span className="text-muted-foreground">
+            {selectedCount > 0
+              ? `${selectedCount} of ${readyDocuments.length} selected`
+              : `${readyDocuments.length} sources`}
+          </span>
+          {selectedCount > 0 ? (
+            <Badge className="bg-primary/10 text-primary">Scoped</Badge>
+          ) : null}
+          <div className="ml-auto flex items-center gap-1">
+            {selectedCount < readyDocuments.length ? (
+              <Button variant="ghost" size="xs" onClick={onSelectAll}>
+                Select all
+              </Button>
+            ) : null}
+            {selectedCount > 0 ? (
+              <Button variant="ghost" size="xs" onClick={onClearSelection}>
+                Clear
+              </Button>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+
       <ScrollArea className="min-h-0 flex-1">
         <div className="space-y-1 p-2">
           {documents.length ? (
@@ -90,6 +112,8 @@ export function DocumentsPanel({
                 >
                   <DocumentItem
                     {...document}
+                    selected={selectedDocumentIds.includes(document.id)}
+                    onToggleSelect={onToggleSelect}
                     onDelete={onDeleteDocument}
                     onPreview={onPreviewDocument}
                   />
@@ -98,19 +122,18 @@ export function DocumentsPanel({
             </AnimatePresence>
           ) : (
             <div className="rounded-md border border-dashed p-6 text-center text-sm text-muted-foreground">
-              No documents uploaded yet. Use the upload button to add your
-              first note.
+              No sources added yet. Use &ldquo;Add source&rdquo; to upload a
+              file or paste a note.
             </div>
           )}
         </div>
       </ScrollArea>
 
-      <UploadDocumentDialog
+      <AddSourceDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
-        isSubmitting={isUploading}
-        error={error}
-        onUpload={handleUpload}
+        onAddFileSource={onAddFileSource}
+        onAddTextSource={onAddTextSource}
       />
     </Card>
   );

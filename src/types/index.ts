@@ -26,6 +26,22 @@ export const DOCUMENT_STATUSES = [
 
 export type DocumentStatus = (typeof DOCUMENT_STATUSES)[number];
 
+export const SOURCE_KINDS = [
+  "TEXT",
+  "MARKDOWN",
+  "PDF",
+  "DOCX",
+  "RTF",
+  "ODT",
+  "IMAGE",
+] as const;
+
+export type SourceKind = (typeof SOURCE_KINDS)[number];
+
+export const PREVIEW_KINDS = ["MARKDOWN", "PLAIN", "PDF", "IMAGE"] as const;
+
+export type PreviewKind = (typeof PREVIEW_KINDS)[number];
+
 export interface Document {
   id: string;
   projectId: string;
@@ -34,10 +50,16 @@ export interface Document {
   fileSize: number;
   mimeType: string;
   cloudinaryUrl: string;
+  cloudinaryPublicId: string;
+  sourceKind: SourceKind;
+  previewKind: PreviewKind;
+  pageCount: number | null;
+  textTruncated: boolean;
   status: DocumentStatus;
   error?: string | null;
   chunkCount: number;
   createdAt: string;
+  processedAt: string | null;
 }
 
 export interface Chat {
@@ -45,6 +67,7 @@ export interface Chat {
   projectId: string;
   userId: string;
   title: string;
+  documentIds: string[];
   createdAt: string;
   updatedAt: string;
 }

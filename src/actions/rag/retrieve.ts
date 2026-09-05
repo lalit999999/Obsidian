@@ -8,6 +8,7 @@ export async function retrieveRelevantChunks({
   query,
   userId,
   projectId,
+  documentIds,
   limit = RAG_DEFAULT_RETRIEVAL_LIMIT,
 }: RetrievalInput): Promise<RetrievedChunkResult[]> {
   if (typeof query !== "string") {
@@ -35,6 +36,7 @@ export async function retrieveRelevantChunks({
     queryEmbedding,
     userId,
     projectId,
+    documentIds,
     limit,
   });
 }

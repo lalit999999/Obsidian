@@ -88,6 +88,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         projectId,
         userId: currentUser.id,
         fileName: file.name,
+        // TODO(Session A): derive from the real multi-format sourceKind once
+        // the parser lands — this route only ever handles txt/md today.
+        sourceKind: file.name.toLowerCase().match(/\.(md|markdown)$/)
+          ? "MARKDOWN"
+          : "TEXT",
         content,
       });
 

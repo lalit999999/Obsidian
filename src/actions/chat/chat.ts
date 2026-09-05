@@ -6,11 +6,11 @@ import { requireCurrentUser } from "@/lib/auth";
 import { NotFoundError } from "@/lib/errors";
 import { getOwnedChat, getOwnedProject } from "@/lib/ownership";
 import { prisma } from "@/lib/prisma";
-import { parseCreateChatInput, parseRenameChatInput } from "@/lib/validations";
+import { parseCreateChatInput, parseUpdateChatInput } from "@/lib/validations";
 
 export async function createChatAction(input: unknown) {
   const currentUser = await requireCurrentUser();
-  const { projectId, title } = parseCreateChatInput(input);
+  const { projectId, title, documentIds } = parseCreateChatInput(input);
 
   await getOwnedProject(projectId, currentUser.id);
 
@@ -19,6 +19,7 @@ export async function createChatAction(input: unknown) {
       projectId,
       userId: currentUser.id,
       title: title ?? "New chat",
+      documentIds: documentIds ?? [],
     },
   });
 
@@ -26,14 +27,17 @@ export async function createChatAction(input: unknown) {
   return chat;
 }
 
-export async function renameChatAction(chatId: string, input: unknown) {
+export async function updateChatAction(chatId: string, input: unknown) {
   const currentUser = await requireCurrentUser();
-  const { title } = parseRenameChatInput(input);
+  const { title, documentIds } = parseUpdateChatInput(input);
   const chat = await getOwnedChat(chatId, currentUser.id);
 
   const updatedChat = await prisma.chat.update({
     where: { id: chat.id },
-    data: { title },
+    data: {
+      ...(title !== undefined ? { title } : {}),
+      ...(documentIds !== undefined ? { documentIds } : {}),
+    },
   });
 
   revalidatePath(`/project/${chat.projectId}`);

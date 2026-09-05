@@ -71,4 +71,3 @@ AI assistant that answers grounded in your documents (RAG over Qdrant).
    ```
 
    Open [http://localhost:3000](http://localhost:3000).
-

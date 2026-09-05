@@ -1,5 +1,5 @@
 import { ensureKnowledgeBaseCollection } from "@/lib/rag/collection";
-import { RAG_DEFAULT_RETRIEVAL_LIMIT } from "@/lib/rag/constants";
+import { RAG_DEFAULT_RETRIEVAL_LIMIT, RAG_MIN_SCORE } from "@/lib/rag/constants";
 import { generateEmbeddings } from "@/lib/rag/embeddings";
 import { searchSimilarChunks } from "@/lib/rag/qdrant-store";
 import type { RetrievedChunkResult, RetrievalInput } from "@/types/rag";
@@ -32,11 +32,13 @@ export async function retrieveRelevantChunks({
 
   const [queryEmbedding] = await generateEmbeddings([trimmedQuery]);
 
-  return searchSimilarChunks({
+  const results = await searchSimilarChunks({
     queryEmbedding,
     userId,
     projectId,
     documentIds,
     limit,
   });
+
+  return results.filter((chunk) => chunk.score >= RAG_MIN_SCORE);
 }

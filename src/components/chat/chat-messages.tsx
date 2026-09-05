@@ -11,7 +11,10 @@ import { ChatMessage as ChatMessageView } from "./chat-message";
 interface ChatMessagesProps {
   messages: ChatMessageType[];
   isLoading: boolean;
-  onOpenSource?: (documentId: string) => void;
+  onOpenSource?: (documentId: string, chunkIndex?: number) => void;
+  onSelectFollowUp?: (question: string) => void;
+  isScoped?: boolean;
+  onWidenScope?: () => void;
 }
 
 const NEAR_BOTTOM_THRESHOLD_PX = 100;
@@ -20,6 +23,9 @@ export function ChatMessages({
   messages,
   isLoading,
   onOpenSource,
+  onSelectFollowUp,
+  isScoped,
+  onWidenScope,
 }: ChatMessagesProps) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const endRef = useRef<HTMLDivElement | null>(null);
@@ -73,7 +79,11 @@ export function ChatMessages({
             content={message.content}
             createdAt={message.createdAt}
             sources={message.sources}
+            blocks={message.blocks}
             onOpenSource={onOpenSource}
+            onSelectFollowUp={onSelectFollowUp}
+            isScoped={isScoped}
+            onWidenScope={onWidenScope}
           />
         ))}
         {isLoading ? <ChatLoading /> : null}

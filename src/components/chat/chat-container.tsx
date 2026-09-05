@@ -24,7 +24,7 @@ interface ChatContainerProps {
   onSendMessage: (content: string) => void;
   onOpenChats?: () => void;
   onOpenDocuments?: () => void;
-  onOpenSource?: (documentId: string) => void;
+  onOpenSource?: (documentId: string, chunkIndex?: number) => void;
   disabled?: boolean;
   documents: Document[];
   selectedDocumentIds: string[];
@@ -97,6 +97,9 @@ export function ChatContainer({
             messages={messages}
             isLoading={isSending}
             onOpenSource={onOpenSource}
+            onSelectFollowUp={onSendMessage}
+            isScoped={selectedDocumentIds.length > 0}
+            onWidenScope={onClearScope}
           />
         )}
       </div>

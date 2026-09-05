@@ -345,3 +345,11 @@ function MarkdownImpl({ content, scale = "compact", className }: MarkdownProps) 
 }
 
 export const Markdown = memo(MarkdownImpl);
+
+/** Renders a plain (non-markdown) string with the same inline citation chips
+ * as the markdown renderers above, for UI that shows raw model text (e.g.
+ * key points) outside the ReactMarkdown pipeline. */
+export function CitationText({ text }: { text: string }) {
+  const citationCtx = useCitations();
+  return <>{renderWithCitations(text, citationCtx)}</>;
+}

@@ -5,9 +5,15 @@ import { Bot, Check, Copy } from "lucide-react";
 import { toast } from "sonner";
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Markdown } from "@/components/ui/markdown";
-import type { ChatMessageSource } from "@/types/chat";
+import { AnswerLead } from "@/components/chat/blocks/answer-lead";
+import { AnswerSections } from "@/components/chat/blocks/answer-sections";
+import { CitationProvider } from "@/components/chat/citation-context";
+import { FollowUps } from "@/components/chat/blocks/follow-ups";
+import { KeyPoints } from "@/components/chat/blocks/key-points";
+import { NotFoundState } from "@/components/chat/blocks/not-found-state";
+import { SourceFooter } from "@/components/chat/blocks/source-footer";
+import type { AnswerPayload, ChatMessageSource } from "@/types/chat";
 import type { MessageRole } from "@/types";
 
 interface ChatMessageProps {
@@ -15,7 +21,11 @@ interface ChatMessageProps {
   content: string;
   createdAt: string;
   sources?: ChatMessageSource[] | null;
-  onOpenSource?: (documentId: string) => void;
+  blocks?: AnswerPayload | null;
+  onOpenSource?: (documentId: string, chunkIndex?: number) => void;
+  onSelectFollowUp?: (question: string) => void;
+  isScoped?: boolean;
+  onWidenScope?: () => void;
 }
 
 export function ChatMessage({
@@ -23,7 +33,11 @@ export function ChatMessage({
   content,
   createdAt,
   sources,
+  blocks,
   onOpenSource,
+  onSelectFollowUp,
+  isScoped = false,
+  onWidenScope,
 }: ChatMessageProps) {
   const isUser = role === "USER";
   const [copied, setCopied] = useState(false);
@@ -61,6 +75,10 @@ export function ChatMessage({
     );
   }
 
+  const handleOpenSource = (documentId: string, chunkIndex: number) => {
+    onOpenSource?.(documentId, chunkIndex);
+  };
+
   return (
     <div className="group flex items-start gap-3">
       <Avatar className="mt-0.5 size-7 shrink-0">
@@ -69,26 +87,41 @@ export function ChatMessage({
         </AvatarFallback>
       </Avatar>
       <div className="min-w-0 flex-1">
-        <Markdown content={content} />
+        {blocks ? (
+          <CitationProvider
+            citations={blocks.citations}
+            onOpenSource={handleOpenSource}
+          >
+            <div className="space-y-4">
+              {blocks.confidence === "not_found" ? (
+                <NotFoundState
+                  lead={blocks.lead}
+                  sources={sources ?? []}
+                  isScoped={isScoped}
+                  onWidenScope={onWidenScope}
+                />
+              ) : (
+                <>
+                  <AnswerLead lead={blocks.lead} />
+                  <AnswerSections sections={blocks.sections} />
+                  <KeyPoints keyPoints={blocks.keyPoints} />
+                </>
+              )}
+            </div>
+          </CitationProvider>
+        ) : (
+          <Markdown content={content} />
+        )}
 
-        {sources?.length ? (
-          <div className="mt-3 flex flex-wrap gap-1.5">
-            {sources.map((source) => (
-              <Badge
-                key={`${source.documentId}:${source.chunkIndex}`}
-                asChild
-                variant="secondary"
-                className="cursor-pointer rounded-full text-xs hover:bg-secondary/80"
-              >
-                <button
-                  type="button"
-                  onClick={() => onOpenSource?.(source.documentId)}
-                >
-                  {source.fileName} · #{source.chunkIndex + 1}
-                </button>
-              </Badge>
-            ))}
-          </div>
+        {blocks?.confidence !== "not_found" ? (
+          <SourceFooter sources={sources ?? []} onOpenSource={onOpenSource} />
+        ) : null}
+
+        {blocks?.followUps.length ? (
+          <FollowUps
+            followUps={blocks.followUps}
+            onSelect={(question) => onSelectFollowUp?.(question)}
+          />
         ) : null}
 
         <div className="mt-1.5 flex items-center gap-2.5 opacity-0 transition-opacity group-hover:opacity-100">

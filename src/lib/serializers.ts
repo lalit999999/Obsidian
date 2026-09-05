@@ -38,6 +38,7 @@ export function serializeChat(chat: {
   projectId: string;
   userId: string;
   title: string;
+  documentIds: string[];
   createdAt: Date;
   updatedAt: Date;
   _count?: { messages?: number };
@@ -47,6 +48,7 @@ export function serializeChat(chat: {
     projectId: chat.projectId,
     userId: chat.userId,
     title: chat.title,
+    documentIds: chat.documentIds,
     createdAt: toIsoString(chat.createdAt),
     updatedAt: toIsoString(chat.updatedAt),
     messageCount: chat._count?.messages ?? 0,
@@ -62,13 +64,13 @@ export function serializeDocument(document: {
   mimeType: string;
   cloudinaryUrl: string;
   cloudinaryPublicId: string;
-  status: DocumentStatus;
-  error: string | null;
-  chunkCount: number;
   sourceKind: SourceKind;
   previewKind: PreviewKind;
   pageCount: number | null;
   textTruncated: boolean;
+  status: DocumentStatus;
+  error: string | null;
+  chunkCount: number;
   createdAt: Date;
   processedAt: Date | null;
 }) {
@@ -81,13 +83,13 @@ export function serializeDocument(document: {
     mimeType: document.mimeType,
     cloudinaryUrl: document.cloudinaryUrl,
     cloudinaryPublicId: document.cloudinaryPublicId,
-    status: document.status,
-    error: document.error,
-    chunkCount: document.chunkCount,
     sourceKind: document.sourceKind,
     previewKind: document.previewKind,
     pageCount: document.pageCount,
     textTruncated: document.textTruncated,
+    status: document.status,
+    error: document.error,
+    chunkCount: document.chunkCount,
     createdAt: toIsoString(document.createdAt),
     processedAt: document.processedAt
       ? toIsoString(document.processedAt)

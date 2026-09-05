@@ -1,12 +1,11 @@
 import { EMBEDDING_THROTTLE, PER_USER_INGEST_CONCURRENCY } from "@/inngest/concurrency";
 import { inngest } from "@/inngest/client";
 import { documentUploaded } from "@/inngest/events";
+import { extractDocument } from "@/lib/documents/extract";
 import { prisma } from "@/lib/prisma";
 import { RAG_EMBEDDING_BATCH_SIZE } from "@/lib/rag/constants";
-import { chunkText } from "@/lib/rag/chunker";
+import { chunkPages, chunkText } from "@/lib/rag/chunker";
 import { generateEmbeddingBatch } from "@/lib/rag/embeddings";
-import { normalizeExtractedText } from "@/lib/rag/parser";
-import { extractPdfText, RAG_MAX_EXTRACTED_TEXT_LENGTH } from "@/lib/rag/pdf";
 import { storeDocumentVectors } from "@/lib/rag/qdrant-store";
 
 export const ingestDocumentFunction = inngest.createFunction(
@@ -50,34 +49,29 @@ export const ingestDocumentFunction = inngest.createFunction(
         );
       }
 
-      let text: string;
-      let pageCount: number | null = null;
-      let textTruncated = false;
-
-      if (document.sourceKind === "PDF") {
-        const buffer = await response.arrayBuffer();
-        const extracted = await extractPdfText(buffer);
-        text = normalizeExtractedText(extracted.text);
-        pageCount = extracted.pageCount;
-        textTruncated = extracted.truncated;
-      } else {
-        const raw = await response.text();
-        const truncated = raw.length > RAG_MAX_EXTRACTED_TEXT_LENGTH;
-        text = normalizeExtractedText(
-          truncated ? raw.slice(0, RAG_MAX_EXTRACTED_TEXT_LENGTH) : raw,
-        );
-        textTruncated = truncated;
-      }
+      const buffer = await response.arrayBuffer();
+      const extracted = await extractDocument(
+        new Uint8Array(buffer),
+        document.fileName,
+        document.mimeType,
+      );
 
       await prisma.document.update({
         where: { id: documentId },
-        data: { extractedText: text, pageCount, textTruncated },
+        data: {
+          extractedText: extracted.text,
+          previewMarkdown: extracted.previewMarkdown,
+          pageCount: extracted.pageCount,
+          textTruncated: extracted.truncated,
+        },
       });
 
-      return { text, pageCount, textTruncated };
+      return extracted;
     });
 
-    const chunks = chunkText(extraction.text);
+    const chunks = extraction.pages?.length
+      ? chunkPages(extraction.pages)
+      : chunkText(extraction.text);
     const texts = chunks.map((chunk) => chunk.content);
     const embeddings: number[][] = new Array(texts.length);
 

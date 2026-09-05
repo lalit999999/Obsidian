@@ -17,6 +17,8 @@ const OPTIONAL_VARS = [
   "OPENAI_EMBEDDING_BASE_URL",
   "OPENAI_CHAT_MODEL",
   "OPENAI_EMBEDDING_MODEL",
+  "INNGEST_EVENT_KEY",
+  "INNGEST_SIGNING_KEY",
 ] as const;
 
 type RequiredVar = (typeof REQUIRED_VARS)[number];
@@ -92,5 +94,11 @@ export const env = {
   },
   get CLOUDINARY_API_SECRET() {
     return requireEnv("CLOUDINARY_API_SECRET");
+  },
+  get INNGEST_EVENT_KEY() {
+    return optionalEnv("INNGEST_EVENT_KEY");
+  },
+  get INNGEST_SIGNING_KEY() {
+    return optionalEnv("INNGEST_SIGNING_KEY");
   },
 } as const;

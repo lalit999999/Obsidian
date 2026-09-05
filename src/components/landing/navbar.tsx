@@ -54,6 +54,7 @@ export function Navbar({ isSignedIn = false }: NavbarProps) {
 
   useEffect(() => {
     const sections = links
+      .filter((link) => link.href.startsWith("#"))
       .map((link) => document.querySelector(link.href))
       .filter((el): el is Element => Boolean(el));
 

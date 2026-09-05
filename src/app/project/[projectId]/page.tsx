@@ -27,7 +27,7 @@ async function ProjectContent({
   chatIdParam?: string;
 }) {
   const projectRecord = await prisma.project.findFirst({
-    where: { id: projectId, userId },
+    where: { id: projectId, userId, deletedAt: null },
     include: { _count: { select: { documents: true, chats: true } } },
   });
 
@@ -37,7 +37,7 @@ async function ProjectContent({
 
   const [documentRecords, chatRecords] = await Promise.all([
     prisma.document.findMany({
-      where: { projectId },
+      where: { projectId, deletedAt: null },
       orderBy: { createdAt: "desc" },
     }),
     prisma.chat.findMany({

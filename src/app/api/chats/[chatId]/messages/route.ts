@@ -17,7 +17,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const { chatId } = await params;
     const currentUser = await requireCurrentUser();
     const chat = await prisma.chat.findFirst({
-      where: { id: chatId, userId: currentUser.id },
+      where: {
+        id: chatId,
+        userId: currentUser.id,
+        project: { deletedAt: null },
+      },
       include: { project: true },
     });
 
@@ -54,6 +58,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
           projectId: chat.projectId,
           userId: currentUser.id,
           status: "READY",
+          deletedAt: null,
         },
         select: { id: true },
       });

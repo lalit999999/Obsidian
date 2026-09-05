@@ -3,9 +3,9 @@
 import { revalidatePath } from "next/cache";
 
 import { requireCurrentUser } from "@/lib/auth";
-import { deleteCloudinaryAsset } from "@/lib/cloudinary";
 import { AppError } from "@/lib/errors";
-import { deleteDocumentVectors } from "@/lib/rag/qdrant-store";
+import { inngest } from "@/inngest/client";
+import { documentDeleted } from "@/inngest/events";
 import { getOwnedDocument } from "@/lib/ownership";
 import { prisma } from "@/lib/prisma";
 
@@ -58,11 +58,21 @@ export async function deleteDocumentAction(documentId: string) {
   const currentUser = await requireCurrentUser();
   const document = await getOwnedDocument(documentId, currentUser.id);
 
-  await deleteDocumentVectors(document.id);
-  await deleteCloudinaryAsset(document.cloudinaryPublicId);
-  await prisma.document.delete({
+  // Soft-delete and let purge-document.ts do the real Qdrant/Cloudinary/
+  // Postgres cleanup in dependency order — see src/actions/project/project.ts
+  // for why this can't happen inline.
+  await prisma.document.update({
     where: { id: document.id },
+    data: { deletedAt: new Date() },
   });
+
+  await inngest.send(
+    documentDeleted.create({
+      documentId: document.id,
+      userId: currentUser.id,
+      cloudinaryPublicId: document.cloudinaryPublicId,
+    }),
+  );
 
   revalidatePath(`/project/${document.projectId}`);
 }

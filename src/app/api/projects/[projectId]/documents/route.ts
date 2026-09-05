@@ -20,7 +20,7 @@ export async function GET(_: NextRequest, { params }: RouteParams) {
     await getOwnedProject(projectId, currentUser.id);
 
     const documents = await prisma.document.findMany({
-      where: { projectId, userId: currentUser.id },
+      where: { projectId, userId: currentUser.id, deletedAt: null },
     });
 
     return jsonSuccess({ documents: documents.map(serializeDocument) });

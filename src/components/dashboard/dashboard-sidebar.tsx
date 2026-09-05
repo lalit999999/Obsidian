@@ -3,7 +3,14 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, LogOut, UserRound } from "lucide-react";
+import {
+  BarChart3,
+  LibraryBig,
+  LifeBuoy,
+  LogOut,
+  Settings,
+  UserRound,
+} from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -19,7 +26,10 @@ interface DashboardSidebarProps {
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: BarChart3 },
+  { href: "/library", label: "Library", icon: LibraryBig },
   { href: "/profile", label: "Profile", icon: UserRound },
+  { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/help", label: "Help", icon: LifeBuoy },
 ];
 
 const STORAGE_KEY = "obsidian:sidebar-width";
@@ -201,7 +211,10 @@ export function DashboardSidebar({ user, forceVisible }: DashboardSidebarProps) 
         <nav className="flex-1 space-y-2 px-3 py-4">
           {navItems.map((item) => {
             const Icon = item.icon;
-            const active = pathname === item.href;
+            const active =
+              item.href === "/dashboard"
+                ? pathname === item.href
+                : pathname.startsWith(item.href);
             const showLabel = forceVisible || !collapsed;
 
             return (

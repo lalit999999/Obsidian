@@ -60,6 +60,7 @@ export function DashboardSidebar({ user, forceVisible }: DashboardSidebarProps) 
   const [width, setWidth] = useState(DEFAULT_WIDTH);
   const [collapsed, setCollapsed] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [maxWidth, setMaxWidth] = useState(DEFAULT_WIDTH * 2);
 
   useEffect(() => {
     if (forceVisible) {
@@ -79,6 +80,17 @@ export function DashboardSidebar({ user, forceVisible }: DashboardSidebarProps) 
     } catch {
       // localStorage unavailable — fall back to the default width.
     }
+  }, [forceVisible]);
+
+  useEffect(() => {
+    if (forceVisible) {
+      return;
+    }
+
+    const updateMaxWidth = () => setMaxWidth(window.innerWidth * MAX_WIDTH_RATIO);
+    updateMaxWidth();
+    window.addEventListener("resize", updateMaxWidth);
+    return () => window.removeEventListener("resize", updateMaxWidth);
   }, [forceVisible]);
 
   const persist = useCallback((next: { width: number } | { collapsed: true }) => {
@@ -288,11 +300,7 @@ export function DashboardSidebar({ user, forceVisible }: DashboardSidebarProps) 
             aria-label="Resize sidebar"
             aria-valuenow={Math.round(effectiveWidth)}
             aria-valuemin={COLLAPSED_WIDTH}
-            aria-valuemax={Math.round(
-              typeof window === "undefined"
-                ? DEFAULT_WIDTH * 2
-                : window.innerWidth * MAX_WIDTH_RATIO,
-            )}
+            aria-valuemax={Math.round(maxWidth)}
             tabIndex={0}
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}

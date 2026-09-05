@@ -22,6 +22,9 @@ model User {
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
+  hydeEnabled    Boolean @default(true)
+  retrievalLimit Int     @default(8)
+
   accounts Account[]
   sessions Session[]
   projects Project[]
@@ -151,6 +154,7 @@ model Document {
   @@index([status])
   @@index([status, processingStartedAt])
   @@index([projectId, deletedAt])
+  @@index([userId, createdAt])
 }
 
 model Chat {

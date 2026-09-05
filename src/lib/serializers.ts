@@ -1,5 +1,10 @@
 import type { ChatMessageSource } from "@/types/chat";
-import type { DocumentStatus, MessageRole, PreviewKind, SourceKind } from "@/types";
+import type {
+  DocumentStatus,
+  MessageRole,
+  PreviewKind,
+  SourceKind,
+} from "@/types";
 
 export function toIsoString(value: Date | string): string {
   return value instanceof Date
@@ -89,6 +94,17 @@ export function serializeDocument(document: {
     processedAt: document.processedAt
       ? toIsoString(document.processedAt)
       : null,
+  };
+}
+
+export function serializeLibraryDocument(
+  document: Parameters<typeof serializeDocument>[0] & {
+    project?: { name: string } | null;
+  },
+) {
+  return {
+    ...serializeDocument(document),
+    projectName: document.project?.name ?? "",
   };
 }
 

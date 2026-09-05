@@ -3,7 +3,14 @@
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { BarChart3, LogOut, UserRound } from "lucide-react";
+import {
+  BarChart3,
+  LibraryBig,
+  LifeBuoy,
+  LogOut,
+  Settings,
+  UserRound,
+} from "lucide-react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -19,7 +26,10 @@ interface DashboardSidebarProps {
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: BarChart3 },
+  { href: "/library", label: "Library", icon: LibraryBig },
   { href: "/profile", label: "Profile", icon: UserRound },
+  { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/help", label: "Help", icon: LifeBuoy },
 ];
 
 const STORAGE_KEY = "obsidian:sidebar-width";
@@ -50,6 +60,7 @@ export function DashboardSidebar({ user, forceVisible }: DashboardSidebarProps) 
   const [width, setWidth] = useState(DEFAULT_WIDTH);
   const [collapsed, setCollapsed] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [maxWidth, setMaxWidth] = useState(DEFAULT_WIDTH * 2);
 
   useEffect(() => {
     if (forceVisible) {
@@ -69,6 +80,17 @@ export function DashboardSidebar({ user, forceVisible }: DashboardSidebarProps) 
     } catch {
       // localStorage unavailable — fall back to the default width.
     }
+  }, [forceVisible]);
+
+  useEffect(() => {
+    if (forceVisible) {
+      return;
+    }
+
+    const updateMaxWidth = () => setMaxWidth(window.innerWidth * MAX_WIDTH_RATIO);
+    updateMaxWidth();
+    window.addEventListener("resize", updateMaxWidth);
+    return () => window.removeEventListener("resize", updateMaxWidth);
   }, [forceVisible]);
 
   const persist = useCallback((next: { width: number } | { collapsed: true }) => {
@@ -201,7 +223,10 @@ export function DashboardSidebar({ user, forceVisible }: DashboardSidebarProps) 
         <nav className="flex-1 space-y-2 px-3 py-4">
           {navItems.map((item) => {
             const Icon = item.icon;
-            const active = pathname === item.href;
+            const active =
+              item.href === "/dashboard"
+                ? pathname === item.href
+                : pathname.startsWith(item.href);
             const showLabel = forceVisible || !collapsed;
 
             return (
@@ -275,11 +300,7 @@ export function DashboardSidebar({ user, forceVisible }: DashboardSidebarProps) 
             aria-label="Resize sidebar"
             aria-valuenow={Math.round(effectiveWidth)}
             aria-valuemin={COLLAPSED_WIDTH}
-            aria-valuemax={Math.round(
-              typeof window === "undefined"
-                ? DEFAULT_WIDTH * 2
-                : window.innerWidth * MAX_WIDTH_RATIO,
-            )}
+            aria-valuemax={Math.round(maxWidth)}
             tabIndex={0}
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}

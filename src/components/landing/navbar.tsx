@@ -25,6 +25,7 @@ const links = [
   { href: "#how-it-works", label: "How it works" },
   { href: "#features", label: "Features" },
   { href: "#cta", label: "Start" },
+  { href: "/help", label: "Help" },
 ];
 
 interface NavbarProps {
@@ -118,17 +119,14 @@ export function Navbar({ isSignedIn = false }: NavbarProps) {
         >
           {links.map((link) => {
             const active = activeHref === link.href;
-            return (
-              <a
-                key={link.href}
-                href={link.href}
-                className={cn(
-                  "relative rounded-full px-3 py-1.5 transition-colors",
-                  active
-                    ? "text-foreground"
-                    : "text-muted-foreground hover:text-foreground",
-                )}
-              >
+            const className = cn(
+              "relative rounded-full px-3 py-1.5 transition-colors",
+              active
+                ? "text-foreground"
+                : "text-muted-foreground hover:text-foreground",
+            );
+            const content = (
+              <>
                 {active ? (
                   <motion.span
                     layoutId="nav-active-pill"
@@ -137,7 +135,17 @@ export function Navbar({ isSignedIn = false }: NavbarProps) {
                   />
                 ) : null}
                 <span className="relative">{link.label}</span>
+              </>
+            );
+
+            return link.href.startsWith("#") ? (
+              <a key={link.href} href={link.href} className={className}>
+                {content}
               </a>
+            ) : (
+              <Link key={link.href} href={link.href} className={className}>
+                {content}
+              </Link>
             );
           })}
         </nav>
@@ -169,15 +177,25 @@ export function Navbar({ isSignedIn = false }: NavbarProps) {
                 <SheetTitle>Obsidian</SheetTitle>
               </SheetHeader>
               <nav aria-label="Section" className="mt-4 flex flex-col gap-1 px-6">
-                {links.map((link) => (
-                  <a
-                    key={link.href}
-                    href={link.href}
-                    className="rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-muted"
-                  >
-                    {link.label}
-                  </a>
-                ))}
+                {links.map((link) =>
+                  link.href.startsWith("#") ? (
+                    <a
+                      key={link.href}
+                      href={link.href}
+                      className="rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-muted"
+                    >
+                      {link.label}
+                    </a>
+                  ) : (
+                    <Link
+                      key={link.href}
+                      href={link.href}
+                      className="rounded-md px-3 py-2 text-sm font-medium transition-colors hover:bg-muted"
+                    >
+                      {link.label}
+                    </Link>
+                  ),
+                )}
               </nav>
               <div className="mt-4 flex flex-col gap-2 px-6">
                 {isSignedIn ? (

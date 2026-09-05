@@ -1,4 +1,10 @@
 import { ValidationError } from "@/lib/errors";
+import { SOURCE_KINDS, type SourceKind } from "@/types";
+import {
+  LIBRARY_PAGE_SIZE,
+  MAX_RETRIEVAL_LIMIT,
+  MIN_RETRIEVAL_LIMIT,
+} from "@/types/library";
 import {
   isLegacyDocFile,
   lookupSourceType,
@@ -241,6 +247,88 @@ export function parseChatMessageInput(input: unknown): ChatMessageInput {
 export interface TextSourceInput {
   text: string;
   title: string;
+}
+
+export interface LibraryQuery {
+  groupBy: "type" | "project" | null;
+  sourceKind: SourceKind | null;
+  projectId: string | null;
+  cursor: string | null;
+  limit: number;
+}
+
+export function parseLibraryQuery(params: URLSearchParams): LibraryQuery {
+  const groupByRaw = params.get("groupBy");
+  if (groupByRaw !== null && groupByRaw !== "type" && groupByRaw !== "project") {
+    throw new ValidationError("groupBy must be 'type' or 'project'.");
+  }
+  const groupBy = groupByRaw;
+
+  const sourceKindRaw = params.get("sourceKind");
+  if (
+    sourceKindRaw !== null &&
+    !SOURCE_KINDS.includes(sourceKindRaw as SourceKind)
+  ) {
+    throw new ValidationError("sourceKind is not a recognized source kind.");
+  }
+  const sourceKind = sourceKindRaw as SourceKind | null;
+
+  const projectId = normalizeOptionalString(params.get("projectId")) ?? null;
+  const cursor = normalizeOptionalString(params.get("cursor")) ?? null;
+
+  const limitRaw = params.get("limit");
+  let limit = LIBRARY_PAGE_SIZE;
+  if (limitRaw !== null) {
+    const parsed = Number(limitRaw);
+    if (!Number.isInteger(parsed)) {
+      throw new ValidationError("limit must be an integer.");
+    }
+    limit = Math.min(Math.max(parsed, 1), LIBRARY_PAGE_SIZE);
+  }
+
+  return { groupBy, sourceKind, projectId, cursor, limit };
+}
+
+export interface UpdateSettingsInput {
+  hydeEnabled?: boolean;
+  retrievalLimit?: number;
+}
+
+export function parseUpdateSettingsInput(input: unknown): UpdateSettingsInput {
+  if (!input || typeof input !== "object") {
+    throw new ValidationError("Request body is required.");
+  }
+
+  const record = input as Record<string, unknown>;
+  const result: UpdateSettingsInput = {};
+
+  if (record.hydeEnabled !== undefined) {
+    if (typeof record.hydeEnabled !== "boolean") {
+      throw new ValidationError("hydeEnabled must be a boolean.");
+    }
+    result.hydeEnabled = record.hydeEnabled;
+  }
+
+  if (record.retrievalLimit !== undefined) {
+    const value = record.retrievalLimit;
+    if (
+      typeof value !== "number" ||
+      !Number.isInteger(value) ||
+      value < MIN_RETRIEVAL_LIMIT ||
+      value > MAX_RETRIEVAL_LIMIT
+    ) {
+      throw new ValidationError(
+        `retrievalLimit must be an integer between ${MIN_RETRIEVAL_LIMIT} and ${MAX_RETRIEVAL_LIMIT}.`,
+      );
+    }
+    result.retrievalLimit = value;
+  }
+
+  if (result.hydeEnabled === undefined && result.retrievalLimit === undefined) {
+    throw new ValidationError("No updatable fields were provided.");
+  }
+
+  return result;
 }
 
 export function parseTextSourceInput(formData: FormData): TextSourceInput {

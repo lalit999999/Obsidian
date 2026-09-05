@@ -135,13 +135,6 @@ model Document {
   error      String?        @db.Text
   chunkCount Int            @default(0)
 
-  sourceKind      SourceKind  @default(TEXT)
-  previewKind     PreviewKind @default(PLAIN)
-  extractedText   String?     @db.Text
-  previewMarkdown String?     @db.Text
-  textTruncated   Boolean     @default(false)
-  pageCount       Int?
-
   createdAt   DateTime  @default(now())
   processedAt DateTime?
 

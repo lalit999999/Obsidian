@@ -51,6 +51,30 @@ process-global, no action needed on Session B's side. Worth promoting to a prope
 Inngest client rather than an explicit startup hook, but that file isn't in my ownership
 list so I didn't add it speculatively.
 
+## Phase A4: PDF gate vs. validateSupportedDocumentFile conflict — resolved with the user
+
+GATE A4 asked for a real 40+ page PDF upload, but `validateSupportedDocumentFile` (which
+the phase instructions said not to touch) only accepts `.txt`/`.md` — multi-format upload
+support hasn't landed yet despite the `SourceKind` enum already existing (see the PDF
+extension note below). Asked the user; they chose testing with a large real `.txt` file
+instead of bending the format gate. `src/lib/rag/pdf.ts` (real `extractPdfText` using
+`unpdf`) is written and correct but currently unreachable in the running app until
+whichever workstream owns `validateSupportedDocumentFile`/multi-format upload lands.
+
+## Second Bun/undici AggregateError bug — different from the Postgres one
+
+While forcing an embedding failure for GATE A4, pointing `OPENAI_EMBEDDING_BASE_URL` at a
+hostname that doesn't resolve at all (NXDOMAIN, not just an unreachable IPv6 address)
+crashed the whole dev-server process with the same `TypeError: object null is not
+iterable ... at AggregateError` seen with the Postgres IPv6 issue — but this one is in
+`fetch()`/undici, not `node:net`, so the `dns.setDefaultResultOrder`/
+`setDefaultAutoSelectFamily` fix in `src/inngest/client.ts` does not cover it. Worked
+around it for testing by pointing at a closed local port (`http://127.0.0.1:1/v1`, clean
+fast `ECONNREFUSED`, no DNS aggregation) instead of a non-resolving hostname. Not fixed in
+app code — a real embeddings provider outage in production would return HTTP errors, not
+total DNS failure, so this is unlikely to bite for real, but flagging since it's the same
+underlying Bun runtime bug surfacing a second way.
+
 ## `src/app/api/documents/[documentId]/raw/route.ts` does not exist
 
 The shared contract lists this under Session A's ownership without a "(new)" marker, implying it

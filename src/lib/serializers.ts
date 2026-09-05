@@ -1,5 +1,10 @@
 import type { ChatMessageSource } from "@/types/chat";
-import type { DocumentStatus, MessageRole } from "@/types";
+import type {
+  DocumentStatus,
+  MessageRole,
+  PreviewKind,
+  SourceKind,
+} from "@/types";
 
 export function toIsoString(value: Date | string): string {
   return value instanceof Date
@@ -60,6 +65,10 @@ export function serializeDocument(document: {
   status: DocumentStatus;
   error: string | null;
   chunkCount: number;
+  sourceKind: SourceKind;
+  previewKind: PreviewKind;
+  pageCount: number | null;
+  textTruncated: boolean;
   createdAt: Date;
   processedAt: Date | null;
 }) {
@@ -75,10 +84,25 @@ export function serializeDocument(document: {
     status: document.status,
     error: document.error,
     chunkCount: document.chunkCount,
+    sourceKind: document.sourceKind,
+    previewKind: document.previewKind,
+    pageCount: document.pageCount,
+    textTruncated: document.textTruncated,
     createdAt: toIsoString(document.createdAt),
     processedAt: document.processedAt
       ? toIsoString(document.processedAt)
       : null,
+  };
+}
+
+export function serializeLibraryDocument(
+  document: Parameters<typeof serializeDocument>[0] & {
+    project?: { name: string } | null;
+  },
+) {
+  return {
+    ...serializeDocument(document),
+    projectName: document.project?.name ?? "",
   };
 }
 

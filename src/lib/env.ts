@@ -17,6 +17,9 @@ const OPTIONAL_VARS = [
   "OPENAI_EMBEDDING_BASE_URL",
   "OPENAI_CHAT_MODEL",
   "OPENAI_EMBEDDING_MODEL",
+  "GEMINI_API_KEY",
+  "GEMINI_VISION_MODEL",
+  "MAX_UPLOAD_BYTES",
 ] as const;
 
 type RequiredVar = (typeof REQUIRED_VARS)[number];
@@ -92,5 +95,16 @@ export const env = {
   },
   get CLOUDINARY_API_SECRET() {
     return requireEnv("CLOUDINARY_API_SECRET");
+  },
+  get GEMINI_API_KEY() {
+    return optionalEnv("GEMINI_API_KEY");
+  },
+  get GEMINI_VISION_MODEL() {
+    return optionalEnv("GEMINI_VISION_MODEL") ?? "gemini-2.5-flash";
+  },
+  get MAX_UPLOAD_BYTES() {
+    const raw = optionalEnv("MAX_UPLOAD_BYTES");
+    const parsed = raw ? Number(raw) : NaN;
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 20_971_520;
   },
 } as const;

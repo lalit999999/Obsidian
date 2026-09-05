@@ -4,62 +4,40 @@ import { revalidatePath } from "next/cache";
 
 import { requireCurrentUser } from "@/lib/auth";
 import { deleteCloudinaryAsset } from "@/lib/cloudinary";
-import { AppError } from "@/lib/errors";
 import { deleteDocumentVectors } from "@/lib/rag/qdrant-store";
 import { getOwnedDocument } from "@/lib/ownership";
 import { prisma } from "@/lib/prisma";
-
-const MAX_PREVIEW_BYTES = 1024 * 1024;
-const TEXT_EXTENSIONS = [".md", ".txt"];
 
 export async function getDocumentContentAction(documentId: string) {
   const currentUser = await requireCurrentUser();
   const document = await getOwnedDocument(documentId, currentUser.id);
 
-  const isTextDocument = TEXT_EXTENSIONS.some((extension) =>
-    document.fileName.toLowerCase().endsWith(extension),
-  );
-
-  if (!isTextDocument) {
-    return { document, content: null, truncated: false };
-  }
-
-  let response: Response;
-  try {
-    response = await fetch(document.cloudinaryUrl, {
-      signal: AbortSignal.timeout(10_000),
-    });
-  } catch {
-    throw new AppError(
-      "Failed to fetch document content.",
-      502,
-      "UPSTREAM_ERROR",
-    );
-  }
-
-  if (!response.ok) {
-    throw new AppError(
-      "Failed to fetch document content.",
-      502,
-      "UPSTREAM_ERROR",
-    );
-  }
-
-  const buffer = await response.arrayBuffer();
-  const truncated = buffer.byteLength > MAX_PREVIEW_BYTES;
-  const content = new TextDecoder().decode(
-    truncated ? buffer.slice(0, MAX_PREVIEW_BYTES) : buffer,
-  );
-
-  return { document, content, truncated };
+  return {
+    document,
+    content: document.extractedText,
+    previewMarkdown: document.previewMarkdown,
+    truncated: document.textTruncated,
+  };
 }
 
 export async function deleteDocumentAction(documentId: string) {
   const currentUser = await requireCurrentUser();
   const document = await getOwnedDocument(documentId, currentUser.id);
 
+  // Vector deletion stays fatal - a stranded Qdrant point is a silent data
+  // leak. A dead Cloudinary asset is just wasted storage, so it's logged and
+  // swallowed rather than blocking the row from ever being deletable.
   await deleteDocumentVectors(document.id);
-  await deleteCloudinaryAsset(document.cloudinaryPublicId);
+
+  try {
+    await deleteCloudinaryAsset(document.cloudinaryPublicId, document.mimeType);
+  } catch (error) {
+    console.error(
+      `[document] failed to delete Cloudinary asset ${document.cloudinaryPublicId}:`,
+      error,
+    );
+  }
+
   await prisma.document.delete({
     where: { id: document.id },
   });

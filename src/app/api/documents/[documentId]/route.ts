@@ -14,12 +14,13 @@ interface RouteParams {
 export async function GET(_: NextRequest, { params }: RouteParams) {
   try {
     const { documentId } = await params;
-    const { document, content, truncated } =
+    const { document, content, previewMarkdown, truncated } =
       await getDocumentContentAction(documentId);
 
     return jsonSuccess({
       document: serializeDocument(document),
       content,
+      previewMarkdown,
       truncated,
     });
   } catch (error) {

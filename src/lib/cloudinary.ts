@@ -9,7 +9,7 @@ export interface CloudinaryUploadResult {
   publicId: string;
 }
 
-function getResourceType(mimeType?: string): string {
+export function getResourceType(mimeType?: string): "image" | "raw" {
   if (!mimeType) {
     return "raw";
   }
@@ -17,12 +17,17 @@ function getResourceType(mimeType?: string): string {
   return mimeType.startsWith("image/") ? "image" : "raw";
 }
 
-export async function uploadDocumentToCloudinary({
-  content,
+function extensionFromFileName(fileName: string): string {
+  const match = /\.([a-zA-Z0-9]+)$/.exec(fileName);
+  return match ? match[1].toLowerCase() : "";
+}
+
+export async function uploadFileToCloudinary({
+  bytes,
   fileName,
   mimeType,
 }: {
-  content: string;
+  bytes: Uint8Array | ArrayBuffer;
   fileName: string;
   mimeType: string;
 }): Promise<CloudinaryUploadResult> {
@@ -36,7 +41,15 @@ export async function uploadDocumentToCloudinary({
   const timestamp = Math.floor(Date.now() / 1000).toString();
   const folder = "obsidian/documents";
   const resourceType = getResourceType(mimeType);
-  const publicId = `${folder}/${fileName.replace(/\.[^.]+$/, "")}-${crypto.randomUUID()}`;
+
+  // Cloudinary `raw` assets are served at exactly `public_id` with no
+  // extension inference, so the real extension must live in the public_id
+  // itself or the delivery URL 404s / serves the wrong content type.
+  const extension = extensionFromFileName(fileName);
+  const baseName = fileName.replace(/\.[^.]+$/, "").slice(0, 80) || "document";
+  const publicId = `${folder}/${baseName}-${crypto.randomUUID()}${
+    extension ? `.${extension}` : ""
+  }`;
 
   const signedParams: Record<string, string> = {
     public_id: publicId,
@@ -53,9 +66,11 @@ export async function uploadDocumentToCloudinary({
     .digest("hex");
 
   const body = new FormData();
+  const uint8Bytes =
+    bytes instanceof Uint8Array ? bytes : new Uint8Array(bytes);
   body.set(
     "file",
-    new Blob([Buffer.from(content, "utf8")], { type: mimeType }),
+    new Blob([new Uint8Array(uint8Bytes)], { type: mimeType }),
     fileName,
   );
   body.set("public_id", publicId);
@@ -98,13 +113,14 @@ export async function uploadDocumentToCloudinary({
 
 export async function deleteCloudinaryAsset(
   publicId: string,
+  mimeType?: string,
 ): Promise<boolean> {
   if (!cloudName || !apiKey || !apiSecret || !publicId) {
     return false;
   }
 
   const timestamp = Math.floor(Date.now() / 1000).toString();
-  const resourceType = "raw";
+  const resourceType = getResourceType(mimeType);
   const signatureBase = `public_id=${publicId}&timestamp=${timestamp}`;
   const signature = crypto
     .createHash("sha1")

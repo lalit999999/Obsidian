@@ -1,11 +1,12 @@
 import { NextRequest } from "next/server";
 
+import { inngest } from "@/inngest/client";
+import { documentUploaded } from "@/inngest/events";
 import { requireCurrentUser } from "@/lib/auth";
 import { uploadDocumentToCloudinary } from "@/lib/cloudinary";
 import { handleRouteError, jsonError, jsonSuccess } from "@/lib/http";
 import { getOwnedProject } from "@/lib/ownership";
 import { prisma } from "@/lib/prisma";
-import { ingestDocument } from "@/actions/rag/ingest";
 import { serializeDocument } from "@/lib/serializers";
 import { validateSupportedDocumentFile } from "@/lib/validations";
 
@@ -54,6 +55,17 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     const fileSize = file.size;
     const mimeType =
       file.type || (file.name.endsWith(".md") ? "text/markdown" : "text/plain");
+    // TODO(Session A): derive from the real multi-format sourceKind once the
+    // parser lands — this route only ever handles txt/md today.
+    const isMarkdown = file.name.toLowerCase().match(/\.(md|markdown)$/);
+    const sourceKind = isMarkdown ? "MARKDOWN" : "TEXT";
+    const previewKind = isMarkdown ? "MARKDOWN" : "PLAIN";
+
+    const cloudinaryAsset = await uploadDocumentToCloudinary({
+      content,
+      fileName: file.name,
+      mimeType,
+    });
 
     const document = await prisma.document.create({
       data: {
@@ -62,68 +74,26 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         fileName: file.name,
         fileSize,
         mimeType,
-        cloudinaryUrl: "",
-        cloudinaryPublicId: "",
-        status: "PROCESSING",
+        cloudinaryUrl: cloudinaryAsset.secureUrl,
+        cloudinaryPublicId: cloudinaryAsset.publicId,
+        sourceKind,
+        previewKind,
+        status: "PENDING",
       },
     });
 
-    try {
-      const cloudinaryAsset = await uploadDocumentToCloudinary({
-        content,
-        fileName: file.name,
-        mimeType,
-      });
-
-      await prisma.document.update({
-        where: { id: document.id },
-        data: {
-          cloudinaryUrl: cloudinaryAsset.secureUrl,
-          cloudinaryPublicId: cloudinaryAsset.publicId,
-        },
-      });
-
-      const ingestResult = await ingestDocument({
+    await inngest.send(
+      documentUploaded.create({
         documentId: document.id,
         projectId,
         userId: currentUser.id,
-        fileName: file.name,
-        // TODO(Session A): derive from the real multi-format sourceKind once
-        // the parser lands — this route only ever handles txt/md today.
-        sourceKind: file.name.toLowerCase().match(/\.(md|markdown)$/)
-          ? "MARKDOWN"
-          : "TEXT",
-        content,
-      });
+      }),
+    );
 
-      const updatedDocument = await prisma.document.update({
-        where: { id: document.id },
-        data: {
-          status: "READY",
-          chunkCount: ingestResult.chunkCount,
-          processedAt: new Date(),
-          error: null,
-        },
-      });
-
-      return jsonSuccess(
-        { document: serializeDocument(updatedDocument) },
-        { status: 201 },
-      );
-    } catch (error) {
-      await prisma.document.update({
-        where: { id: document.id },
-        data: {
-          status: "FAILED",
-          error:
-            error instanceof Error
-              ? error.message
-              : "Document processing failed.",
-        },
-      });
-
-      throw error;
-    }
+    return jsonSuccess(
+      { document: serializeDocument(document) },
+      { status: 201 },
+    );
   } catch (error) {
     return handleRouteError(error);
   }

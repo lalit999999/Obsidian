@@ -22,21 +22,13 @@ export function getSupportedRagFileExtension(
     : null;
 }
 
-export function parseDocumentContent(
-  content: string,
-  fileName?: string,
-): string {
+// Whitespace normalization only, no extension gate — for content whose
+// format has already been authoritatively decided elsewhere (e.g. text
+// extracted from a PDF by sourceKind, not by re-deriving it from a
+// filename extension).
+export function normalizeExtractedText(content: string): string {
   if (typeof content !== "string") {
     throw new Error("Document content must be a string.");
-  }
-
-  if (fileName) {
-    const extension = getSupportedRagFileExtension(fileName);
-    if (extension === null) {
-      throw new Error(
-        `Unsupported file type for RAG ingestion: ${fileName}. Supported types are .txt and .md.`,
-      );
-    }
   }
 
   const trimmed = content.trim();
@@ -58,4 +50,20 @@ export function parseDocumentContent(
   }
 
   return normalized;
+}
+
+export function parseDocumentContent(
+  content: string,
+  fileName?: string,
+): string {
+  if (fileName) {
+    const extension = getSupportedRagFileExtension(fileName);
+    if (extension === null) {
+      throw new Error(
+        `Unsupported file type for RAG ingestion: ${fileName}. Supported types are .txt and .md.`,
+      );
+    }
+  }
+
+  return normalizeExtractedText(content);
 }

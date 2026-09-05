@@ -1,6 +1,8 @@
 import { NextRequest } from "next/server";
 
 import { generateChatResponse } from "@/actions/ai/chat";
+import { inngest } from "@/inngest/client";
+import { chatTitleRequested } from "@/inngest/events";
 import { requireCurrentUser } from "@/lib/auth";
 import { handleRouteError, jsonError, jsonSuccess } from "@/lib/http";
 import { checkAiRateLimit } from "@/lib/rate-limit";
@@ -86,20 +88,35 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       documentIds: scopedDocumentIds,
     });
 
+    // Session B owns the blocks payload shape; read structurally so this route
+    // compiles regardless of merge order.
+    const blocks = (aiResult as { blocks?: unknown }).blocks ?? null;
+
     const assistantMessageRecord = await prisma.message.create({
       data: {
         chatId: chat.id,
         role: "ASSISTANT",
         content: aiResult.answer,
         sources: aiResult.sources as unknown as Prisma.InputJsonValue,
+        blocks: blocks as Prisma.InputJsonValue | undefined,
       },
     });
 
     if (chat.title === "New chat") {
+      // Immediate fallback so the sidebar is never empty while the title
+      // job runs — generate-chat-title.ts overwrites this once it completes.
       await prisma.chat.update({
         where: { id: chat.id },
         data: { title: content.slice(0, 120) },
       });
+
+      await inngest.send(
+        chatTitleRequested.create({
+          chatId: chat.id,
+          userId: currentUser.id,
+          firstMessage: content,
+        }),
+      );
     }
 
     return jsonSuccess({

@@ -14,7 +14,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const currentUser = await requireCurrentUser();
     const document = await getOwnedDocument(documentId, currentUser.id);
 
-    if (!document.cloudinaryUrl || document.cloudinaryUrl.startsWith("local://")) {
+    if (
+      !document.cloudinaryUrl ||
+      document.cloudinaryUrl.startsWith("local://")
+    ) {
       return jsonError(
         "Original file is not available.",
         404,
@@ -28,30 +31,24 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         signal: AbortSignal.timeout(15_000),
       });
     } catch {
-      return jsonError(
-        "Failed to fetch the original file.",
-        502,
-        "UPSTREAM_ERROR",
-      );
+      return jsonError("Failed to fetch the original file.", 502, "UPSTREAM_ERROR");
     }
 
     if (!upstream.ok || !upstream.body) {
-      return jsonError(
-        "Failed to fetch the original file.",
-        502,
-        "UPSTREAM_ERROR",
-      );
+      return jsonError("Failed to fetch the original file.", 502, "UPSTREAM_ERROR");
     }
 
-    const download = request.nextUrl.searchParams.get("download") === "1";
-    const disposition = download ? "attachment" : "inline";
-    const safeFileName = document.fileName.replace(/"/g, "'");
+    const isDownload = request.nextUrl.searchParams.get("download") === "1";
+    const asciiFallbackName = document.fileName.replace(/[^\x20-\x7e]/g, "_");
+    const encodedName = encodeURIComponent(document.fileName);
 
-    const headers = new Headers({
-      "Content-Type": document.mimeType,
-      "Content-Disposition": `${disposition}; filename="${safeFileName}"`,
-      "Cache-Control": "private, max-age=300",
-    });
+    const headers = new Headers();
+    headers.set("Content-Type", document.mimeType || "application/octet-stream");
+    headers.set("Cache-Control", "private, max-age=300");
+    headers.set(
+      "Content-Disposition",
+      `${isDownload ? "attachment" : "inline"}; filename="${asciiFallbackName}"; filename*=UTF-8''${encodedName}`,
+    );
 
     const contentLength = upstream.headers.get("content-length");
     if (contentLength) {

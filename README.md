@@ -71,13 +71,3 @@ AI assistant that answers grounded in your documents (RAG over Qdrant).
    ```
 
    Open [http://localhost:3000](http://localhost:3000).
-
-## Notes
-
-- Auth is Google OAuth only — no email/password.
-- Document ingestion (parsing, chunking, embedding) runs inline in the upload request.
-  For local dev this is fine; a production deployment would move this to a background
-  queue to avoid serverless timeouts on large documents.
-- The in-memory rate limiter in `src/lib/rate-limit.ts` is per-instance and will not
-  work correctly across multiple server instances — it should move to Redis before a
-  multi-instance deploy.

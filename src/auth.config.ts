@@ -1,7 +1,13 @@
 import type { NextAuthConfig } from "next-auth";
 import Google from "next-auth/providers/google";
 
-const PROTECTED_PATH_PREFIXES = ["/dashboard", "/project", "/profile"];
+const PROTECTED_PATH_PREFIXES = [
+  "/dashboard",
+  "/project",
+  "/profile",
+  "/library",
+  "/settings",
+];
 
 function isProtectedPath(pathname: string): boolean {
   return PROTECTED_PATH_PREFIXES.some(

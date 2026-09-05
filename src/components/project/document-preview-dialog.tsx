@@ -168,7 +168,7 @@ export function DocumentPreviewDialog({
 
   const sourceType = sourceTypeForKind(document.sourceKind);
   const FileIcon = sourceType.icon;
-  const tabLabels = TAB_LABELS[document.sourceKind];
+  const tabLabels = TAB_LABELS[document.sourceKind] ?? TAB_LABELS[sourceType.kind];
   const isTallPreview =
     document.previewKind === "PDF" || document.previewKind === "IMAGE";
 

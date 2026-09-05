@@ -129,12 +129,14 @@ export function matchSourceType(
   return null;
 }
 
-export function sourceTypeForKind(kind: SourceKind): SourceTypeUi {
-  const sourceType = SOURCE_TYPES.find((type) => type.kind === kind);
-  if (!sourceType) {
-    throw new Error(`Unknown source kind: ${kind}`);
-  }
-  return sourceType;
+// Falls back to the TEXT entry for an unrecognized kind rather than
+// throwing — this renders from live data (including rows written by a
+// stale Prisma Client elsewhere on a shared dev database), and a bad or
+// missing sourceKind must never crash the whole page.
+export function sourceTypeForKind(kind: SourceKind | null | undefined): SourceTypeUi {
+  return (
+    SOURCE_TYPES.find((type) => type.kind === kind) ?? sourceTypeForKind("TEXT")
+  );
 }
 
 export const FILE_ACCEPT_ATTRIBUTE = Array.from(

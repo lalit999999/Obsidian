@@ -41,6 +41,8 @@ export function DocumentPreviewBody({
       return (
         <ImagePreview documentId={document.id} fileName={document.fileName} />
       );
+    default:
+      return <NoPreviewAvailable />;
   }
 }
 

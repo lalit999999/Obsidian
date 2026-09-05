@@ -1,5 +1,5 @@
 import type { ChatMessageSource } from "@/types/chat";
-import type { DocumentStatus, MessageRole } from "@/types";
+import type { DocumentStatus, MessageRole, PreviewKind, SourceKind } from "@/types";
 
 export function toIsoString(value: Date | string): string {
   return value instanceof Date
@@ -33,6 +33,7 @@ export function serializeChat(chat: {
   projectId: string;
   userId: string;
   title: string;
+  documentIds: string[];
   createdAt: Date;
   updatedAt: Date;
   _count?: { messages?: number };
@@ -42,6 +43,7 @@ export function serializeChat(chat: {
     projectId: chat.projectId,
     userId: chat.userId,
     title: chat.title,
+    documentIds: chat.documentIds,
     createdAt: toIsoString(chat.createdAt),
     updatedAt: toIsoString(chat.updatedAt),
     messageCount: chat._count?.messages ?? 0,
@@ -57,6 +59,10 @@ export function serializeDocument(document: {
   mimeType: string;
   cloudinaryUrl: string;
   cloudinaryPublicId: string;
+  sourceKind: SourceKind;
+  previewKind: PreviewKind;
+  pageCount: number | null;
+  textTruncated: boolean;
   status: DocumentStatus;
   error: string | null;
   chunkCount: number;
@@ -72,6 +78,10 @@ export function serializeDocument(document: {
     mimeType: document.mimeType,
     cloudinaryUrl: document.cloudinaryUrl,
     cloudinaryPublicId: document.cloudinaryPublicId,
+    sourceKind: document.sourceKind,
+    previewKind: document.previewKind,
+    pageCount: document.pageCount,
+    textTruncated: document.textTruncated,
     status: document.status,
     error: document.error,
     chunkCount: document.chunkCount,

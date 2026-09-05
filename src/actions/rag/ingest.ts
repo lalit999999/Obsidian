@@ -1,9 +1,8 @@
-import { RAG_DEFAULT_RETRIEVAL_LIMIT } from "@/lib/rag/constants";
-import { chunkText } from "@/lib/rag/chunker";
+import { chunkPages, chunkText } from "@/lib/rag/chunker";
 import { generateEmbeddings } from "@/lib/rag/embeddings";
 import { parseDocumentContent } from "@/lib/rag/parser";
 import { storeDocumentVectors } from "@/lib/rag/qdrant-store";
-import type { IngestionInput, IngestionResult } from "@/types/rag";
+import type { IngestionInput, IngestionResult, TextChunk } from "@/types/rag";
 
 export async function ingestDocument({
   documentId,
@@ -12,6 +11,7 @@ export async function ingestDocument({
   fileName,
   sourceKind,
   content,
+  pages,
 }: IngestionInput): Promise<IngestionResult> {
   if (!documentId || typeof documentId !== "string") {
     throw new Error("A valid documentId is required.");
@@ -33,8 +33,12 @@ export async function ingestDocument({
     throw new Error("Document content must be a string.");
   }
 
-  const parsedContent = parseDocumentContent(content, fileName);
-  const chunks = chunkText(parsedContent);
+  let chunks: TextChunk[];
+  if (pages && pages.length > 0) {
+    chunks = chunkPages(pages.map((page) => parseDocumentContent(page)));
+  } else {
+    chunks = chunkText(parseDocumentContent(content));
+  }
 
   if (chunks.length === 0) {
     throw new Error("Chunking produced no sections for ingestion.");
@@ -66,5 +70,3 @@ export async function ingestDocument({
     chunkCount: chunks.length,
   };
 }
-
-export const DEFAULT_INGESTION_RESULT_LIMIT = RAG_DEFAULT_RETRIEVAL_LIMIT;

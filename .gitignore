@@ -44,3 +44,4 @@ next-env.d.ts
 /generated/prisma
 prisma/generated/
 qdrant_storage/
+submission/

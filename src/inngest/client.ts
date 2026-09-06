@@ -20,4 +20,7 @@ net.setDefaultAutoSelectFamily(false);
 // API, removed in v4 — see events.ts). Event typing now lives on each
 // `EventType`, not on the client. `INNGEST_EVENT_KEY`/`INNGEST_SIGNING_KEY`
 // are read by the SDK directly from process.env; both are optional locally.
-export const inngest = new Inngest({ id: "obsidian" });
+export const inngest = new Inngest({
+  id: "obsidian",
+  isDev: process.env.NODE_ENV !== "production",
+});

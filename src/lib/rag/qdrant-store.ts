@@ -161,6 +161,12 @@ export async function deleteDocumentVectors(documentId: string): Promise<void> {
   }
 
   try {
+    const { exists } = await qdrantClient.collectionExists(RAG_COLLECTION_NAME);
+
+    if (!exists) {
+      return;
+    }
+
     await qdrantClient.delete(RAG_COLLECTION_NAME, {
       filter: {
         must: [{ key: "documentId", match: { value: documentId } }],

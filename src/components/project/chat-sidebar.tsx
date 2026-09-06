@@ -204,7 +204,7 @@ export function ChatSidebar({
                         className="h-6"
                       />
                     ) : (
-                      <p className="truncate text-sm font-medium">
+                      <p className="min-w-0 flex-1 truncate text-sm font-medium">
                         {chat.title}
                       </p>
                     )}

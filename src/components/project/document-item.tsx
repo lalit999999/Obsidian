@@ -124,8 +124,10 @@ export function DocumentItem({
 
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-2">
-          <p className="truncate text-sm font-medium">{fileName}</p>
-          <DocumentStatusBadge status={status} />
+          <p className="min-w-0 flex-1 truncate text-sm font-medium">
+            {fileName}
+          </p>
+          <DocumentStatusBadge status={status} className="shrink-0" />
         </div>
         <div className="mt-0.5 flex flex-wrap gap-x-1.5 text-xs text-muted-foreground">
           <span>{formatBytes(fileSize)}</span>

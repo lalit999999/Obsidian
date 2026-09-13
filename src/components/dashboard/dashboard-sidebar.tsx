@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useId, useRef, useState } from "react";
+import { useId } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -15,6 +15,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useResizablePanel } from "@/hooks/use-resizable-panel";
 import { signOutAction } from "@/actions/auth/sign-out";
 import type { User } from "@/types";
 
@@ -36,168 +37,30 @@ const STORAGE_KEY = "obsidian:sidebar-width";
 const MIN_WIDTH = 180;
 const DEFAULT_WIDTH = 288;
 const COLLAPSED_WIDTH = 64;
-const COLLAPSE_SNAP_THRESHOLD = MIN_WIDTH - 40;
 const MAX_WIDTH_RATIO = 0.4;
-const ARROW_KEY_STEP = 16;
-const ARROW_KEY_STEP_LARGE = 40;
-
-function clampWidth(width: number) {
-  const maxWidth =
-    typeof window !== "undefined"
-      ? window.innerWidth * MAX_WIDTH_RATIO
-      : DEFAULT_WIDTH * 2;
-  return Math.min(Math.max(width, MIN_WIDTH), Math.max(maxWidth, MIN_WIDTH));
-}
 
 export function DashboardSidebar({ user, forceVisible }: DashboardSidebarProps) {
   const pathname = usePathname();
-  const asideRef = useRef<HTMLElement>(null);
   const asideId = useId();
-  const dragState = useRef<{ pointerId: number; startX: number; startWidth: number } | null>(
-    null,
-  );
 
-  const [width, setWidth] = useState(DEFAULT_WIDTH);
-  const [collapsed, setCollapsed] = useState(false);
-  const [isDragging, setIsDragging] = useState(false);
-  const [maxWidth, setMaxWidth] = useState(DEFAULT_WIDTH * 2);
-
-  useEffect(() => {
-    if (forceVisible) {
-      return;
-    }
-
-    try {
-      const stored = window.localStorage.getItem(STORAGE_KEY);
-      if (stored === "collapsed") {
-        setCollapsed(true);
-      } else if (stored) {
-        const parsed = Number(stored);
-        if (!Number.isNaN(parsed)) {
-          setWidth(clampWidth(parsed));
-        }
-      }
-    } catch {
-      // localStorage unavailable — fall back to the default width.
-    }
-  }, [forceVisible]);
-
-  useEffect(() => {
-    if (forceVisible) {
-      return;
-    }
-
-    const updateMaxWidth = () => setMaxWidth(window.innerWidth * MAX_WIDTH_RATIO);
-    updateMaxWidth();
-    window.addEventListener("resize", updateMaxWidth);
-    return () => window.removeEventListener("resize", updateMaxWidth);
-  }, [forceVisible]);
-
-  const persist = useCallback((next: { width: number } | { collapsed: true }) => {
-    try {
-      window.localStorage.setItem(
-        STORAGE_KEY,
-        "collapsed" in next ? "collapsed" : String(Math.round(next.width)),
-      );
-    } catch {
-      // Ignore write failures (private browsing, storage full, etc.).
-    }
-  }, []);
-
-  const applyWidth = useCallback((px: number) => {
-    if (asideRef.current) {
-      asideRef.current.style.width = `${px}px`;
-    }
-  }, []);
-
-  const commitWidth = useCallback(
-    (px: number) => {
-      const clamped = clampWidth(px);
-      setCollapsed(false);
-      setWidth(clamped);
-      applyWidth(clamped);
-      persist({ width: clamped });
-    },
-    [applyWidth, persist],
-  );
-
-  const commitCollapsed = useCallback(() => {
-    setCollapsed(true);
-    applyWidth(COLLAPSED_WIDTH);
-    persist({ collapsed: true });
-  }, [applyWidth, persist]);
-
-  const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
-    event.currentTarget.setPointerCapture(event.pointerId);
-    dragState.current = {
-      pointerId: event.pointerId,
-      startX: event.clientX,
-      startWidth: collapsed ? MIN_WIDTH : width,
-    };
-    setIsDragging(true);
-  };
-
-  const handlePointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (!dragState.current || dragState.current.pointerId !== event.pointerId) {
-      return;
-    }
-
-    const proposedWidth =
-      dragState.current.startWidth + (event.clientX - dragState.current.startX);
-
-    applyWidth(
-      proposedWidth < COLLAPSE_SNAP_THRESHOLD
-        ? COLLAPSED_WIDTH
-        : clampWidth(proposedWidth),
-    );
-  };
-
-  const endDrag = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (!dragState.current || dragState.current.pointerId !== event.pointerId) {
-      return;
-    }
-
-    const proposedWidth =
-      dragState.current.startWidth + (event.clientX - dragState.current.startX);
-    dragState.current = null;
-    setIsDragging(false);
-
-    if (proposedWidth < COLLAPSE_SNAP_THRESHOLD) {
-      commitCollapsed();
-    } else {
-      commitWidth(proposedWidth);
-    }
-  };
-
-  const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
-    const step = event.shiftKey ? ARROW_KEY_STEP_LARGE : ARROW_KEY_STEP;
-    const current = collapsed ? MIN_WIDTH : width;
-
-    if (event.key === "ArrowLeft") {
-      event.preventDefault();
-      const next = current - step;
-      if (next < COLLAPSE_SNAP_THRESHOLD) {
-        commitCollapsed();
-      } else {
-        commitWidth(next);
-      }
-    } else if (event.key === "ArrowRight") {
-      event.preventDefault();
-      commitWidth(current + step);
-    }
-  };
-
-  const handleDoubleClick = () => {
-    commitWidth(DEFAULT_WIDTH);
-  };
-
-  const effectiveWidth = collapsed ? COLLAPSED_WIDTH : width;
+  const { effectiveWidth, collapsed, isDragging, elementRef, handleProps } =
+    useResizablePanel<HTMLElement>({
+      storageKey: STORAGE_KEY,
+      edge: "right",
+      defaultWidth: DEFAULT_WIDTH,
+      minWidth: MIN_WIDTH,
+      // No separate hard ceiling here — the viewport ratio below is the only cap.
+      maxWidth: Number.POSITIVE_INFINITY,
+      collapsedWidth: COLLAPSED_WIDTH,
+      getMaxWidth: () => window.innerWidth * MAX_WIDTH_RATIO,
+      ariaLabel: "Resize sidebar",
+    });
 
   return (
     <>
       <aside
         id={forceVisible ? undefined : asideId}
-        ref={forceVisible ? undefined : asideRef}
+        ref={forceVisible ? undefined : elementRef}
         style={forceVisible ? undefined : { width: effectiveWidth }}
         className={cn(
           "relative h-screen shrink-0 flex-col border-r bg-sidebar/70 backdrop-blur",
@@ -295,24 +158,12 @@ export function DashboardSidebar({ user, forceVisible }: DashboardSidebarProps) 
 
         {forceVisible ? null : (
           <div
-            role="separator"
-            aria-orientation="vertical"
-            aria-label="Resize sidebar"
-            aria-valuenow={Math.round(effectiveWidth)}
-            aria-valuemin={COLLAPSED_WIDTH}
-            aria-valuemax={Math.round(maxWidth)}
-            tabIndex={0}
-            onPointerDown={handlePointerDown}
-            onPointerMove={handlePointerMove}
-            onPointerUp={endDrag}
-            onPointerCancel={endDrag}
-            onKeyDown={handleKeyDown}
-            onDoubleClick={handleDoubleClick}
+            {...handleProps}
             className="absolute inset-y-0 -right-1 z-10 hidden w-2 cursor-col-resize touch-none select-none rounded-full outline-none hover:bg-primary/20 focus-visible:bg-primary/30 xl:block"
           />
         )}
       </aside>
-      {isDragging ? (
+      {!forceVisible && isDragging ? (
         <style>{"* { user-select: none !important; }"}</style>
       ) : null}
     </>

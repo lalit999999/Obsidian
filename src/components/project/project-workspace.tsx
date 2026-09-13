@@ -10,6 +10,8 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { cn } from "@/lib/utils";
+import { useResizablePanel } from "@/hooks/use-resizable-panel";
 import type { Chat, Document, Message, Project } from "@/types";
 import type { SendMessageResponse } from "@/types/chat";
 import { ChatContainer } from "@/components/chat/chat-container";
@@ -28,6 +30,30 @@ interface ProjectWorkspaceProps {
 
 const DOCUMENT_POLL_INTERVAL_MS = 2500;
 const SCOPE_PATCH_DEBOUNCE_MS = 400;
+
+// Keep these in sync with the lg:w-65 / lg:w-75 placeholders in
+// project-workspace-skeleton.tsx.
+const CHATS_PANEL = {
+  storageKey: "obsidian:project-chats-width",
+  edge: "right" as const,
+  defaultWidth: 260,
+  minWidth: 200,
+  maxWidth: 480,
+  collapsedWidth: 36,
+};
+const SOURCES_PANEL = {
+  storageKey: "obsidian:project-sources-width",
+  edge: "left" as const,
+  defaultWidth: 300,
+  minWidth: 240,
+  maxWidth: 560,
+  collapsedWidth: 36,
+};
+// The chat pane must never be squeezed below this, no matter how the two
+// side panels are dragged.
+const CHAT_PANE_MIN_WIDTH = 360;
+// Matches the workspace row's `gap-3` (0.75rem) between its three columns.
+const PANEL_GAP_PX = 12;
 
 export function ProjectWorkspace({
   project,
@@ -59,8 +85,6 @@ export function ProjectWorkspace({
   const [lastFailedMessage, setLastFailedMessage] = useState<string | null>(
     null,
   );
-  const [leftCollapsed, setLeftCollapsed] = useState(false);
-  const [rightCollapsed, setRightCollapsed] = useState(false);
   const [previewDocumentId, setPreviewDocumentId] = useState<string | null>(
     null,
   );
@@ -68,6 +92,50 @@ export function ProjectWorkspace({
   const scopePatchTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(
     null,
   );
+
+  const workspaceRowRef = useRef<HTMLDivElement>(null);
+  const chatsWidthRef = useRef(CHATS_PANEL.defaultWidth);
+  const sourcesWidthRef = useRef(SOURCES_PANEL.defaultWidth);
+
+  const chatsPanel = useResizablePanel<HTMLDivElement>({
+    ...CHATS_PANEL,
+    ariaLabel: "Resize chats panel",
+    getMaxWidth: () => {
+      const containerWidth =
+        workspaceRowRef.current?.getBoundingClientRect().width ?? 0;
+      if (!containerWidth) {
+        return CHATS_PANEL.maxWidth;
+      }
+      return Math.min(
+        CHATS_PANEL.maxWidth,
+        containerWidth -
+          sourcesWidthRef.current -
+          CHAT_PANE_MIN_WIDTH -
+          PANEL_GAP_PX * 2,
+      );
+    },
+  });
+  chatsWidthRef.current = chatsPanel.effectiveWidth;
+
+  const sourcesPanel = useResizablePanel<HTMLDivElement>({
+    ...SOURCES_PANEL,
+    ariaLabel: "Resize sources panel",
+    getMaxWidth: () => {
+      const containerWidth =
+        workspaceRowRef.current?.getBoundingClientRect().width ?? 0;
+      if (!containerWidth) {
+        return SOURCES_PANEL.maxWidth;
+      }
+      return Math.min(
+        SOURCES_PANEL.maxWidth,
+        containerWidth -
+          chatsWidthRef.current -
+          CHAT_PANE_MIN_WIDTH -
+          PANEL_GAP_PX * 2,
+      );
+    },
+  });
+  sourcesWidthRef.current = sourcesPanel.effectiveWidth;
 
   useEffect(() => {
     setChats(initialChats);
@@ -581,36 +649,45 @@ export function ProjectWorkspace({
         onOpenDocuments={() => setMobileDocsOpen(true)}
       />
 
-      <div className="flex h-full min-h-0 gap-3">
+      <div ref={workspaceRowRef} className="flex h-full min-h-0 gap-3">
         <div
-          className={
-            "hidden min-h-0 shrink-0 overflow-hidden transition-[width] duration-200 motion-reduce:transition-none lg:block " +
-            (leftCollapsed ? "w-9" : "w-65")
-          }
+          ref={chatsPanel.elementRef}
+          style={{ width: chatsPanel.effectiveWidth }}
+          className={cn(
+            "relative hidden min-h-0 shrink-0 lg:block",
+            !chatsPanel.isDragging &&
+              "transition-[width] duration-200 motion-reduce:transition-none",
+          )}
         >
-          {leftCollapsed ? (
+          {chatsPanel.collapsed ? (
             <button
               type="button"
-              onClick={() => setLeftCollapsed(false)}
+              onClick={chatsPanel.expand}
               aria-label="Expand chats panel"
               className="flex h-full w-9 items-center justify-center rounded-lg border bg-card/60 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
             >
               <PanelLeftOpen className="size-4" />
             </button>
           ) : (
-            <div className="h-full min-h-0 w-65">
-              <ChatSidebar
-                chats={chats}
-                activeChatId={activeChat?.id ?? null}
-                onSelectChat={(chatId) => {
-                  selectChat(chatId);
-                }}
-                onCreateChat={createChat}
-                onRenameChat={renameChat}
-                onDeleteChat={deleteChat}
-                onCollapse={() => setLeftCollapsed(true)}
+            <>
+              <div className="h-full min-h-0 overflow-hidden">
+                <ChatSidebar
+                  chats={chats}
+                  activeChatId={activeChat?.id ?? null}
+                  onSelectChat={(chatId) => {
+                    selectChat(chatId);
+                  }}
+                  onCreateChat={createChat}
+                  onRenameChat={renameChat}
+                  onDeleteChat={deleteChat}
+                  onCollapse={chatsPanel.collapse}
+                />
+              </div>
+              <div
+                {...chatsPanel.handleProps}
+                className="absolute inset-y-0 -right-1 z-10 hidden w-2 cursor-col-resize touch-none select-none rounded-full outline-none hover:bg-primary/20 focus-visible:bg-primary/30 lg:block"
               />
-            </div>
+            </>
           )}
         </div>
 
@@ -637,37 +714,46 @@ export function ProjectWorkspace({
         </div>
 
         <div
-          className={
-            "hidden min-h-0 shrink-0 overflow-hidden transition-[width] duration-200 motion-reduce:transition-none lg:block " +
-            (rightCollapsed ? "w-9" : "w-75")
-          }
+          ref={sourcesPanel.elementRef}
+          style={{ width: sourcesPanel.effectiveWidth }}
+          className={cn(
+            "relative hidden min-h-0 shrink-0 lg:block",
+            !sourcesPanel.isDragging &&
+              "transition-[width] duration-200 motion-reduce:transition-none",
+          )}
         >
-          {rightCollapsed ? (
+          {sourcesPanel.collapsed ? (
             <button
               type="button"
-              onClick={() => setRightCollapsed(false)}
+              onClick={sourcesPanel.expand}
               aria-label="Expand sources panel"
               className="flex h-full w-9 items-center justify-center rounded-lg border bg-card/60 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
             >
               <PanelRightOpen className="size-4" />
             </button>
           ) : (
-            <div className="h-full min-h-0 w-75">
-              <DocumentsPanel
-                documents={documents}
-                selectedDocumentIds={selectedDocumentIds}
-                onToggleSelect={toggleSelectDocument}
-                onSelectAll={selectAllDocuments}
-                onClearSelection={clearSelection}
-                onAddFileSource={addFileSource}
-                onAddTextSource={addTextSource}
-                onDeleteDocument={deleteDocument}
-                onPreviewDocument={(documentId) =>
-                  setPreviewDocumentId(documentId)
-                }
-                onCollapse={() => setRightCollapsed(true)}
+            <>
+              <div
+                {...sourcesPanel.handleProps}
+                className="absolute inset-y-0 -left-1 z-10 hidden w-2 cursor-col-resize touch-none select-none rounded-full outline-none hover:bg-primary/20 focus-visible:bg-primary/30 lg:block"
               />
-            </div>
+              <div className="h-full min-h-0 overflow-hidden">
+                <DocumentsPanel
+                  documents={documents}
+                  selectedDocumentIds={selectedDocumentIds}
+                  onToggleSelect={toggleSelectDocument}
+                  onSelectAll={selectAllDocuments}
+                  onClearSelection={clearSelection}
+                  onAddFileSource={addFileSource}
+                  onAddTextSource={addTextSource}
+                  onDeleteDocument={deleteDocument}
+                  onPreviewDocument={(documentId) =>
+                    setPreviewDocumentId(documentId)
+                  }
+                  onCollapse={sourcesPanel.collapse}
+                />
+              </div>
+            </>
           )}
         </div>
       </div>

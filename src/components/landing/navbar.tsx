@@ -24,6 +24,7 @@ import {
 const links = [
   { href: "#how-it-works", label: "How it works" },
   { href: "#features", label: "Features" },
+  { href: "#faq", label: "FAQ" },
   { href: "#cta", label: "Start" },
   { href: "/help", label: "Help" },
 ];

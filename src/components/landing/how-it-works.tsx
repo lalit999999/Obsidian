@@ -12,7 +12,7 @@ const steps = [
     number: "02",
     title: "Upload your documents",
     description:
-      "Add .md and .txt files. Each one moves through pending, processing, and ready as it's parsed, chunked, and embedded.",
+      "Add text, Markdown, PDF, Word, RTF, OpenDocument, or image files. Each one moves through pending, processing, and ready as it's parsed, chunked, and embedded.",
   },
   {
     number: "03",

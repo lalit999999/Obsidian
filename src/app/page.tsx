@@ -1,4 +1,5 @@
 import { CTASection } from "@/components/landing/cta-section";
+import { FaqSection } from "@/components/landing/faq-section";
 import { FeaturesSection } from "@/components/landing/features-section";
 import { Footer } from "@/components/landing/footer";
 import { HeroSection } from "@/components/landing/hero-section";
@@ -15,6 +16,7 @@ export default async function HomePage() {
       <HeroSection />
       <HowItWorks />
       <FeaturesSection />
+      <FaqSection />
       <CTASection />
       <Footer />
     </main>

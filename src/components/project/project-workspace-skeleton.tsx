@@ -11,6 +11,7 @@ export function ProjectWorkspaceSkeleton() {
         <Skeleton className="h-6 w-16 rounded-full" />
       </div>
       <div className="flex h-full min-h-0 gap-3">
+        {/* Widths mirror CHATS_PANEL.defaultWidth / SOURCES_PANEL.defaultWidth in project-workspace.tsx — keep them in sync. */}
         <Skeleton className="hidden min-h-0 rounded-lg lg:block lg:w-65" />
         <Skeleton className="min-h-0 flex-1 rounded-lg" />
         <Skeleton className="hidden min-h-0 rounded-lg lg:block lg:w-75" />

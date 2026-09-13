@@ -21,7 +21,10 @@ export function handleRouteError(error: unknown) {
     return jsonError(error.message, error.statusCode, error.code);
   }
 
-  const message =
-    error instanceof Error ? error.message : "Unexpected server error";
-  return jsonError(message, 500, "INTERNAL_SERVER_ERROR");
+  console.error(error);
+  return jsonError(
+    "Internet Connection problem",
+    500,
+    "Internet Connection problem",
+  );
 }
